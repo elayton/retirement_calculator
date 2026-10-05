@@ -45,7 +45,7 @@ class SummaryPage extends StatelessWidget {
           // The total across all accounts, then one row per account.
           Center(
             child: Text(
-              '${portfolio.type}    Total: ${_currency.format(total)}',
+              'Portfolio: ${portfolio.type}  \u00B7  Total: ${_currency.format(total)}',
             ),
           ),
           const SizedBox(height: 12),
@@ -63,6 +63,11 @@ class SummaryPage extends StatelessWidget {
               },
               children: [
                 TableRow(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(width: 1, color: Colors.grey),
+                    ),
+                  ),
                   children: [
                     _cell(_bold('Name')),
                     _cell(_bold('Type')),
@@ -74,7 +79,7 @@ class SummaryPage extends StatelessWidget {
                   TableRow(
                     children: [
                       _cell(Text(a.name)),
-                      _cell(Text(a.type)),
+                      _cell(Text(a.type.label)),
                       _cell(_right(Text(_currency.format(a.balance)))),
                       _cell(Text(a.updated.toString().split(' ').first)),
                     ],

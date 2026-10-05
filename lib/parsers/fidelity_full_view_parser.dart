@@ -3,6 +3,25 @@ import 'package:intl/intl.dart';
 
 import '../models/portfolio.dart';
 
+/// Maps the raw "Type" column values from a Fidelity "Full View" export to
+/// the app's [PortfolioAccountType].
+const _accountTypeByValue = <String, PortfolioAccountType>{
+  'cash': PortfolioAccountType.cash,
+  'qualifiedretirement': PortfolioAccountType.traditionalIra,
+  'taxableinvestments': PortfolioAccountType.brokerage,
+  'WPS': PortfolioAccountType.wps,
+  'Brokerage': PortfolioAccountType.traditionalIra,
+  'hsa': PortfolioAccountType.hsa,
+  'annuities': PortfolioAccountType.annuities,
+  'rothira': PortfolioAccountType.rothIra,
+  '529plans': PortfolioAccountType.plans529,
+  'CreditCard': PortfolioAccountType.creditCard,
+  'Other': PortfolioAccountType.other,
+};
+
+PortfolioAccountType _accountTypeFromValue(String value) =>
+    _accountTypeByValue[value] ?? PortfolioAccountType.unknown;
+
 /// Parses Fidelity "Full View" portfolio export files.
 ///
 /// Expected header:
@@ -53,7 +72,7 @@ Portfolio parseFidelityFullView(
 
     accounts.add(
       PortfolioAccount(
-        type: typeName,
+        type: _accountTypeFromValue(typeName),
         name: name,
         institution: institution,
         balance: balance,

@@ -1,3 +1,24 @@
+enum PortfolioAccountType {
+  cash('Cash'),
+  traditionalIra('Traditional IRA'),
+  wps('401(k)'),
+  brokerage('Brokerage'),
+  hsa('HSA'),
+  annuities('Annuities'),
+  rothIra('Roth IRA'),
+  plans529('529 Plans'),
+  creditCard('Credit Card'),
+  other('Other'),
+
+  /// Fallback for values that the parser does not recognize.
+  unknown('Unknown');
+
+  const PortfolioAccountType(this.label);
+
+  /// Human-readable name displayed on the Summary page.
+  final String label;
+}
+
 class PortfolioAccount {
   const PortfolioAccount({
     required this.type,
@@ -7,7 +28,7 @@ class PortfolioAccount {
     required this.updated,
   });
 
-  final String type;
+  final PortfolioAccountType type;
   final String name;
   final String institution;
   final double balance;
