@@ -37,6 +37,17 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.white,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
       home: Scaffold(
         appBar: AppBar(
           // The title and the tab strip.

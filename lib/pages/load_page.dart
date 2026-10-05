@@ -93,15 +93,32 @@ class _LoadPageState extends State<LoadPage>
                 DropdownMenu<PortfolioType>(
                   width: 220,
                   initialSelection: _portfolioType,
-                  textStyle: Theme.of(context).textTheme.bodyMedium,
+                  textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                   trailingIcon: Transform.translate(
-                    offset: const Offset(0, -2),
-                    child: const Icon(Icons.arrow_drop_down),
+                    offset: const Offset(0, -4),
+                    child: Icon(
+                      Icons.arrow_drop_down,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   inputDecorationTheme: InputDecorationTheme(
-                    border: const OutlineInputBorder(),
-                    enabledBorder: const OutlineInputBorder(),
-                    focusedBorder: const OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                     constraints: const BoxConstraints.tightFor(height: 40),
                   ),
@@ -126,10 +143,11 @@ class _LoadPageState extends State<LoadPage>
               width: 220,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.color,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
                   fixedSize: const Size(220, 40),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(4)),
@@ -144,7 +162,10 @@ class _LoadPageState extends State<LoadPage>
           // The error from the most recent load attempt, if any.
           if (_error != null) ...[
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
         ],
       ),

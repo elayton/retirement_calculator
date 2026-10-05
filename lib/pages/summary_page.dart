@@ -42,18 +42,40 @@ class SummaryPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The total across all accounts, then one row per account.
+          // The total across all accounts.
           Center(
-            child: Text(
-              'Portfolio: ${portfolio.type}  \u00B7  Total: ${_currency.format(total)}',
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Portfolio: '),
+                  TextSpan(
+                    text: portfolio.type.toString(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const TextSpan(text: '  \u00B7  Total: '),
+                  TextSpan(
+                    text: _currency.format(total),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: Table(
-              border: const TableBorder(
-                verticalInside: BorderSide(width: 1, color: Colors.grey),
+              border: TableBorder(
+                verticalInside: BorderSide(
+                  width: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
               columnWidths: const {
                 0: FlexColumnWidth(2),
@@ -63,9 +85,12 @@ class SummaryPage extends StatelessWidget {
               },
               children: [
                 TableRow(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(width: 1, color: Colors.grey),
+                      bottom: BorderSide(
+                        width: 1,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                   ),
                   children: [
@@ -75,6 +100,7 @@ class SummaryPage extends StatelessWidget {
                     _cell(_bold('Updated')),
                   ],
                 ),
+                // One row per account.
                 for (final a in portfolio.accounts)
                   TableRow(
                     children: [
