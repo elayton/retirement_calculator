@@ -5,6 +5,7 @@ import 'pages/compare_page.dart';
 import 'pages/load_page.dart';
 import 'pages/plan_page.dart';
 import 'pages/summary_page.dart';
+import 'models/portfolio.dart';
 
 void main() {
   runApp(const MainApp());
@@ -17,9 +18,9 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-class _MainAppState extends State<MainApp>
-    with SingleTickerProviderStateMixin {
+class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  Portfolio? _portfolio;
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _MainAppState extends State<MainApp>
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
+          // The title and the tab strip.
           title: const Text("Eric's Retirement Calculator"),
           centerTitle: true,
           bottom: TabBar(
@@ -46,44 +48,70 @@ class _MainAppState extends State<MainApp>
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.folder_open), SizedBox(width: 6), Text('Load')],
+                  children: [
+                    Icon(Icons.folder_open),
+                    SizedBox(width: 6),
+                    Text('Load'),
+                  ],
                 ),
               ),
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.summarize), SizedBox(width: 6), Text('Summary')],
+                  children: [
+                    Icon(Icons.summarize),
+                    SizedBox(width: 6),
+                    Text('Summary'),
+                  ],
                 ),
               ),
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.pie_chart), SizedBox(width: 6), Text('Breakdown')],
+                  children: [
+                    Icon(Icons.pie_chart),
+                    SizedBox(width: 6),
+                    Text('Breakdown'),
+                  ],
                 ),
               ),
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.event_note), SizedBox(width: 6), Text('Plan')],
+                  children: [
+                    Icon(Icons.event_note),
+                    SizedBox(width: 6),
+                    Text('Plan'),
+                  ],
                 ),
               ),
               Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Icon(Icons.compare_arrows), SizedBox(width: 6), Text('Compare')],
+                  children: [
+                    Icon(Icons.compare_arrows),
+                    SizedBox(width: 6),
+                    Text('Compare'),
+                  ],
                 ),
               ),
             ],
           ),
         ),
         body: TabBarView(
+          // One page is shown per tab.
           controller: _tabController,
-          children: const [
-            LoadPage(),
-            SummaryPage(),
-            BreakdownPage(),
-            PlanPage(),
-            ComparePage(),
+          children: [
+            LoadPage(
+              onLoaded: (portfolio) {
+                setState(() => _portfolio = portfolio);
+                _tabController.animateTo(1);
+              },
+            ),
+            SummaryPage(portfolio: _portfolio),
+            const BreakdownPage(),
+            const PlanPage(),
+            const ComparePage(),
           ],
         ),
       ),
