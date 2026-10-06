@@ -80,7 +80,7 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.pie_chart),
+                    Icon(Icons.table_chart),
                     SizedBox(width: 6),
                     Text('Breakdown'),
                   ],
@@ -120,7 +120,7 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
               },
             ),
             SummaryPage(portfolio: _portfolio),
-            const BreakdownPage(),
+            BreakdownPage(portfolio: _portfolio),
             const PlanPage(),
             const ComparePage(),
           ],

@@ -101,8 +101,15 @@ class SummaryPage extends StatelessWidget {
                   ],
                 ),
                 // One row per account.
-                for (final a in portfolio.accounts)
+                for (final (i, a) in portfolio.accounts.indexed)
                   TableRow(
+                    decoration: BoxDecoration(
+                      color: i.isOdd
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest
+                          : null,
+                    ),
                     children: [
                       _cell(Text(a.name)),
                       _cell(Text(a.type.label)),
