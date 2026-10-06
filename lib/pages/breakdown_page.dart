@@ -20,14 +20,80 @@ Align _right(Widget child) => Align(
   child: child,
 );
 
-class BreakdownPage extends StatelessWidget {
+class BreakdownPage extends StatefulWidget {
   const BreakdownPage({super.key, this.portfolio});
 
   final Portfolio? portfolio;
 
   @override
+  State<BreakdownPage> createState() => _BreakdownPageState();
+}
+
+class _BreakdownPageState extends State<BreakdownPage> {
+  int? _sortColumn;
+  bool _ascending = true;
+
+  void _onSort(int column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _ascending = !_ascending;
+      } else {
+        _sortColumn = column;
+        _ascending = true;
+      }
+    });
+  }
+
+  Widget _headerCell(String title, int column) {
+    final active = _sortColumn == column;
+    return _cell(
+      InkWell(
+        onTap: () => _onSort(column),
+        child: _right(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: _bold(title)),
+              if (active) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 14,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _nameHeader() {
+    final active = _sortColumn == 0;
+    return _cell(
+      InkWell(
+        onTap: () => _onSort(0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _bold('Account Name'),
+            if (active) ...[
+              const SizedBox(width: 4),
+              Icon(
+                _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 14,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final portfolio = this.portfolio;
+    final portfolio = widget.portfolio;
     if (portfolio == null) {
       return const Center(child: Text('No portfolio loaded.'));
     }
@@ -41,6 +107,22 @@ class BreakdownPage extends StatelessWidget {
     final types = PortfolioAccountType.values
         .where((t) => portfolio.accounts.any((a) => a.type == t))
         .toList();
+
+    final accounts = [...portfolio.accounts];
+    if (_sortColumn != null) {
+      accounts.sort((a, b) {
+        int c;
+        if (_sortColumn == 0) {
+          c = a.name.compareTo(b.name);
+        } else {
+          final t = types[_sortColumn! - 1];
+          final av = a.type == t ? a.balance : 0.0;
+          final bv = b.type == t ? b.balance : 0.0;
+          c = av.compareTo(bv);
+        }
+        return _ascending ? c : -c;
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -96,12 +178,13 @@ class BreakdownPage extends StatelessWidget {
                     ),
                   ),
                   children: [
-                    _cell(_bold('Name')),
-                    for (final t in types) _cell(_right(_bold(t.label))),
+                    _nameHeader(),
+                    for (final (i, t) in types.indexed)
+                      _headerCell(t.label, i + 1),
                   ],
                 ),
                 // One row per account.
-                for (final (i, a) in portfolio.accounts.indexed)
+                for (final (i, a) in accounts.indexed)
                   TableRow(
                     decoration: BoxDecoration(
                       color: i.isOdd

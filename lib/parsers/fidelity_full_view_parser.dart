@@ -12,7 +12,7 @@ const _accountTypeByValue = <String, PortfolioAccountType>{
   'WPS': PortfolioAccountType.fourOhOneK,
   'Brokerage': PortfolioAccountType.traditionalIra,
   'hsa': PortfolioAccountType.hsa,
-  'annuities': PortfolioAccountType.annuities,
+  'annuities': PortfolioAccountType.annuity,
   'rothira': PortfolioAccountType.rothIra,
   '529plans': PortfolioAccountType.fiveTwoNinePlan,
   'CreditCard': PortfolioAccountType.creditCard,

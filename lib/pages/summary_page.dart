@@ -20,14 +20,71 @@ Align _right(Widget child) => Align(
   child: child,
 );
 
-class SummaryPage extends StatelessWidget {
+class SummaryPage extends StatefulWidget {
   const SummaryPage({super.key, this.portfolio});
 
   final Portfolio? portfolio;
 
   @override
+  State<SummaryPage> createState() => _SummaryPageState();
+}
+
+class _SummaryPageState extends State<SummaryPage> {
+  int? _sortColumn;
+  bool _ascending = true;
+
+  void _onSort(int column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _ascending = !_ascending;
+      } else {
+        _sortColumn = column;
+        _ascending = true;
+      }
+    });
+  }
+
+  int _compare(PortfolioAccount a, PortfolioAccount b, int column) {
+    switch (column) {
+      case 0:
+        return a.name.compareTo(b.name);
+      case 1:
+        return a.type.label.compareTo(b.type.label);
+      case 2:
+        return a.balance.compareTo(b.balance);
+      case 3:
+        return a.updated.compareTo(b.updated);
+      default:
+        return 0;
+    }
+  }
+
+  Widget _headerCell(String title, int column, {bool right = false}) {
+    final active = _sortColumn == column;
+    final label = Row(
+      mainAxisAlignment: right
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: _bold(title)),
+        if (active) ...[
+          const SizedBox(width: 4),
+          Icon(
+            _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 14,
+          ),
+        ],
+      ],
+    );
+    return _cell(
+      InkWell(onTap: () => _onSort(column), child: right ? _right(label) : label),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final portfolio = this.portfolio;
+    final portfolio = widget.portfolio;
     if (portfolio == null) {
       return const Center(child: Text('No portfolio loaded.'));
     }
@@ -36,6 +93,14 @@ class SummaryPage extends StatelessWidget {
       0,
       (sum, a) => sum + a.balance,
     );
+
+    final accounts = [...portfolio.accounts];
+    if (_sortColumn != null) {
+      accounts.sort((a, b) {
+        final c = _compare(a, b, _sortColumn!);
+        return _ascending ? c : -c;
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -55,7 +120,7 @@ class SummaryPage extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  const TextSpan(text: '  \u00B7  Total: '),
+                  const TextSpan(text: '  ·  Total: '),
                   TextSpan(
                     text: _currency.format(total),
                     style: TextStyle(
@@ -94,14 +159,14 @@ class SummaryPage extends StatelessWidget {
                     ),
                   ),
                   children: [
-                    _cell(_bold('Name')),
-                    _cell(_bold('Type')),
-                    _cell(_right(_bold('Balance'))),
-                    _cell(_bold('Updated')),
+                    _headerCell('Account Name', 0),
+                    _headerCell('Type', 1),
+                    _headerCell('Balance', 2, right: true),
+                    _headerCell('Updated', 3),
                   ],
                 ),
                 // One row per account.
-                for (final (i, a) in portfolio.accounts.indexed)
+                for (final (i, a) in accounts.indexed)
                   TableRow(
                     decoration: BoxDecoration(
                       color: i.isOdd
