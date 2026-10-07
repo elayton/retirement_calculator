@@ -4,29 +4,16 @@ import '../models/portfolio.dart';
 import '../utils/formatting.dart';
 
 /// Standard padding applied to every cell in portfolio tables.
-Padding tableCell(Widget child) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: child,
-    );
+Padding tableCell(Widget child) => Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: child);
 
-Text boldText(String text) => Text(
-      text,
-      style: const TextStyle(fontWeight: FontWeight.bold),
-    );
+Text boldText(String text) => Text(text, style: const TextStyle(fontWeight: FontWeight.bold));
 
 Text italicText(String text, {Color? color}) => Text(
-      text,
-      style: TextStyle(
-        fontStyle: FontStyle.italic,
-        fontWeight: FontWeight.w500,
-        color: color,
-      ),
-    );
+  text,
+  style: TextStyle(fontStyle: FontStyle.italic, fontWeight: FontWeight.w500, color: color),
+);
 
-Align rightAlign(Widget child) => Align(
-      alignment: Alignment.centerRight,
-      child: child,
-    );
+Align rightAlign(Widget child) => Align(alignment: Alignment.centerRight, child: child);
 
 class NoPortfolioLoaded extends StatelessWidget {
   const NoPortfolioLoaded({super.key});
@@ -39,16 +26,16 @@ class NoPortfolioLoaded extends StatelessWidget {
 
 /// The "Portfolio: {type} · Total: {amount}" header line.
 class PortfolioTypeAndTotal extends StatelessWidget {
-  const PortfolioTypeAndTotal({super.key, required this.portfolio});
+  const PortfolioTypeAndTotal({
+    super.key,
+    required this.portfolio,
+  });
 
   final Portfolio portfolio;
 
   @override
   Widget build(BuildContext context) {
-    final total = portfolio.accounts.fold<double>(
-      0,
-      (sum, a) => sum + a.balance,
-    );
+    final total = portfolio.accounts.fold<double>(0, (sum, a) => sum + a.balance);
     return Center(
       child: Text.rich(
         TextSpan(
@@ -56,18 +43,12 @@ class PortfolioTypeAndTotal extends StatelessWidget {
             const TextSpan(text: 'Portfolio: '),
             TextSpan(
               text: portfolio.type,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
             ),
             const TextSpan(text: '  ·  Total: '),
             TextSpan(
               text: appCurrency.format(total),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
             ),
           ],
         ),
@@ -134,26 +115,14 @@ class _SortableAccountsTableState extends State<SortableAccountsTable> {
   Widget _headerCell(AccountColumn column, int index) {
     final active = _sortColumn == index;
     final label = Row(
-      mainAxisAlignment:
-          column.right ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: column.right ? MainAxisAlignment.end : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: boldText(column.title)),
-        if (active) ...[
-          const SizedBox(width: 4),
-          Icon(
-            _ascending ? Icons.arrow_upward : Icons.arrow_downward,
-            size: 14,
-          ),
-        ],
+        if (active) ...[const SizedBox(width: 4), Icon(_ascending ? Icons.arrow_upward : Icons.arrow_downward, size: 14)],
       ],
     );
-    return tableCell(
-      InkWell(
-        onTap: () => _onSort(index),
-        child: column.right ? rightAlign(label) : label,
-      ),
-    );
+    return tableCell(InkWell(onTap: () => _onSort(index), child: column.right ? rightAlign(label) : label));
   }
 
   @override
@@ -170,71 +139,34 @@ class _SortableAccountsTableState extends State<SortableAccountsTable> {
     return SizedBox(
       width: double.infinity,
       child: Table(
-        border: TableBorder(
-          verticalInside: BorderSide(
-            width: 1,
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        columnWidths: {
-          for (var i = 0; i < widget.columns.length; i++)
-            i: FlexColumnWidth(widget.columns[i].flex.toDouble()),
-        },
+        border: TableBorder(verticalInside: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
+        columnWidths: {for (var i = 0; i < widget.columns.length; i++) i: FlexColumnWidth(widget.columns[i].flex.toDouble())},
         children: [
           TableRow(
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  width: 1,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
+              border: Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
             ),
-            children: [
-              for (var i = 0; i < widget.columns.length; i++)
-                _headerCell(widget.columns[i], i),
-            ],
+            children: [for (var i = 0; i < widget.columns.length; i++) _headerCell(widget.columns[i], i)],
           ),
           if (widget.topFooterCells != null)
             TableRow(
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    width: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
+                border: Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
               ),
-              children: [
-                for (final cell in widget.topFooterCells!) tableCell(cell),
-              ],
+              children: [for (final cell in widget.topFooterCells!) tableCell(cell)],
             ),
           // One row per account.
           for (final (i, a) in accounts.indexed)
             TableRow(
-              decoration: BoxDecoration(
-                color: i.isOdd
-                    ? Theme.of(context).colorScheme.surfaceContainerHighest
-                    : null,
-              ),
-              children: [
-                for (final column in widget.columns)
-                  tableCell(column.builder(a)),
-              ],
+              decoration: BoxDecoration(color: i.isOdd ? Theme.of(context).colorScheme.surfaceContainerHighest : null),
+              children: [for (final column in widget.columns) tableCell(column.builder(a))],
             ),
           if (widget.footerCells != null)
             TableRow(
               decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    width: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
+                border: Border(top: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
               ),
-              children: [
-                for (final cell in widget.footerCells!) tableCell(cell),
-              ],
+              children: [for (final cell in widget.footerCells!) tableCell(cell)],
             ),
         ],
       ),

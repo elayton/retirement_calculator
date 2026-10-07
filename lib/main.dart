@@ -12,11 +12,8 @@ void main() {
 }
 
 Tab _iconTab(IconData icon, String label) => Tab(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon), const SizedBox(width: 6), Text(label)],
-      ),
-    );
+  child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon), const SizedBox(width: 6), Text(label)]),
+);
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -44,15 +41,9 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.white), useMaterial3: true),
       darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.white,
-          brightness: Brightness.dark,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white, brightness: Brightness.dark),
         useMaterial3: true,
       ),
       home: Scaffold(

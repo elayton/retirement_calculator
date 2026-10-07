@@ -12,12 +12,4 @@ final _dateFormatter = DateFormat('yyyy-MM-dd');
 String formatDate(DateTime date) => _dateFormatter.format(date);
 
 /// Formats accepted when parsing dates from portfolio files.
-const dateParseFormats = <String>[
-  'MMM d, yyyy',
-  'MMM dd, yyyy',
-  'MMM-d-yyyy',
-  'MMM-dd-yyyy',
-  'M/d/yyyy',
-  'MM/dd/yyyy',
-  'yyyy-MM-dd',
-];
+const dateParseFormats = <String>['MMM d, yyyy', 'MMM dd, yyyy', 'MMM-d-yyyy', 'MMM-dd-yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd'];

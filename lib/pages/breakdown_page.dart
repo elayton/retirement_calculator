@@ -5,7 +5,10 @@ import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
 
 class BreakdownPage extends StatelessWidget {
-  const BreakdownPage({super.key, this.portfolio});
+  const BreakdownPage({
+    super.key,
+    this.portfolio,
+  });
 
   final Portfolio? portfolio;
 
@@ -17,37 +20,20 @@ class BreakdownPage extends StatelessWidget {
     }
 
     // The distinct account types present in the portfolio, in enum order.
-    final types = PortfolioAccountType.values
-        .where((t) => portfolio.accounts.any((a) => a.type == t))
-        .toList();
+    final types = PortfolioAccountType.values.where((t) => portfolio.accounts.any((a) => a.type == t)).toList();
 
     final totalsRow = [
       boldText('Total'),
       for (final t in types)
-        rightAlign(
-          boldText(
-            appCurrency.format(
-              portfolio.accounts
-                  .where((a) => a.type == t)
-                  .fold<double>(0, (sum, a) => sum + a.balance),
-            ),
-          ),
-        ),
+        rightAlign(boldText(appCurrency.format(portfolio.accounts.where((a) => a.type == t).fold<double>(0, (sum, a) => sum + a.balance)))),
     ];
 
     final topTotalsRow = [
-      italicText(
-        'Total',
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      italicText('Total', color: Theme.of(context).colorScheme.onSurfaceVariant),
       for (final t in types)
         rightAlign(
           italicText(
-            appCurrency.format(
-              portfolio.accounts
-                  .where((a) => a.type == t)
-                  .fold<double>(0, (sum, a) => sum + a.balance),
-            ),
+            appCurrency.format(portfolio.accounts.where((a) => a.type == t).fold<double>(0, (sum, a) => sum + a.balance)),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -63,12 +49,7 @@ class BreakdownPage extends StatelessWidget {
           SortableAccountsTable(
             accounts: portfolio.accounts,
             columns: [
-              AccountColumn(
-                title: 'Account Name',
-                flex: 2,
-                compare: (a, b) => a.name.compareTo(b.name),
-                builder: (a) => Text(a.name),
-              ),
+              AccountColumn(title: 'Account Name', flex: 2, compare: (a, b) => a.name.compareTo(b.name), builder: (a) => Text(a.name)),
               for (final t in types)
                 AccountColumn(
                   title: t.label,
@@ -78,9 +59,7 @@ class BreakdownPage extends StatelessWidget {
                     final bv = b.type == t ? b.balance : 0.0;
                     return av.compareTo(bv);
                   },
-                  builder: (a) => rightAlign(
-                    Text(a.type == t ? appCurrency.format(a.balance) : ''),
-                  ),
+                  builder: (a) => rightAlign(Text(a.type == t ? appCurrency.format(a.balance) : '')),
                 ),
             ],
             footerCells: totalsRow,

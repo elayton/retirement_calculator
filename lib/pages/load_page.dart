@@ -8,7 +8,10 @@ import '../models/portfolio_type.dart';
 import '../parsers/fidelity_full_view_parser.dart';
 
 class LoadPage extends StatefulWidget {
-  const LoadPage({super.key, this.onLoaded});
+  const LoadPage({
+    super.key,
+    this.onLoaded,
+  });
 
   final ValueChanged<Portfolio>? onLoaded;
 
@@ -16,8 +19,7 @@ class LoadPage extends StatefulWidget {
   State<LoadPage> createState() => _LoadPageState();
 }
 
-class _LoadPageState extends State<LoadPage>
-    with AutomaticKeepAliveClientMixin {
+class _LoadPageState extends State<LoadPage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -28,21 +30,14 @@ class _LoadPageState extends State<LoadPage>
 
   // Pick a file, parse it, and update the loaded state.
   Future<void> _pickFile() async {
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
+    final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['csv']);
     final path = file?.path;
     if (file == null || path == null) return;
 
     try {
       final contents = await File(path).readAsString();
       final portfolio = switch (_portfolioType) {
-        PortfolioType.fidelityFullView => parseFidelityFullView(
-            contents,
-            type: _portfolioType.label,
-            fileName: file.name,
-          ),
+        PortfolioType.fidelityFullView => parseFidelityFullView(contents, type: _portfolioType.label, fileName: file.name),
       };
       setState(() {
         _portfolio = portfolio;
@@ -71,10 +66,7 @@ class _LoadPageState extends State<LoadPage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Current Portfolio',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Current Portfolio', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
                   Text('Type: ${_portfolio!.type}'),
                   Text('File: ${_portfolio!.fileName}'),
@@ -90,26 +82,14 @@ class _LoadPageState extends State<LoadPage>
               children: [
                 const Text('Load Portfolio:'),
                 const SizedBox(width: 12),
-                _PortfolioTypeDropdown(
-                  initialSelection: _portfolioType,
-                  onSelected: (value) =>
-                      setState(() => _portfolioType = value),
-                ),
+                _PortfolioTypeDropdown(initialSelection: _portfolioType, onSelected: (value) => setState(() => _portfolioType = value)),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Center(
-            child: _BrowseButton(onPressed: _pickFile),
-          ),
+          Center(child: _BrowseButton(onPressed: _pickFile)),
           // The error from the most recent load attempt, if any.
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
+          if (_error != null) ...[const SizedBox(height: 16), Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))],
         ],
       ),
     );
@@ -117,10 +97,7 @@ class _LoadPageState extends State<LoadPage>
 }
 
 class _PortfolioTypeDropdown extends StatelessWidget {
-  const _PortfolioTypeDropdown({
-    required this.initialSelection,
-    required this.onSelected,
-  });
+  const _PortfolioTypeDropdown({required this.initialSelection, required this.onSelected});
 
   final PortfolioType initialSelection;
   final ValueChanged<PortfolioType> onSelected;
@@ -130,50 +107,23 @@ class _PortfolioTypeDropdown extends StatelessWidget {
     return DropdownMenu<PortfolioType>(
       width: 220,
       initialSelection: initialSelection,
-      textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-          ),
+      textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
       trailingIcon: Transform.translate(
         offset: const Offset(0, -4),
-        child: Icon(
-          Icons.arrow_drop_down,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        child: Icon(Icons.arrow_drop_down, color: Theme.of(context).colorScheme.primary),
       ),
       selectedTrailingIcon: Transform.translate(
         offset: const Offset(0, -4),
-        child: Icon(
-          Icons.arrow_drop_up,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        child: Icon(Icons.arrow_drop_up, color: Theme.of(context).colorScheme.primary),
       ),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
+        border: OutlineInputBorder(borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)),
+        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)),
+        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         constraints: const BoxConstraints.tightFor(height: 40),
       ),
-      dropdownMenuEntries: PortfolioType.values
-          .map(
-            (type) => DropdownMenuEntry(
-              value: type,
-              label: type.label,
-            ),
-          )
-          .toList(),
+      dropdownMenuEntries: PortfolioType.values.map((type) => DropdownMenuEntry(value: type, label: type.label)).toList(),
       onSelected: (value) {
         if (value != null) onSelected(value);
       },
@@ -194,13 +144,9 @@ class _BrowseButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.primary,
           fixedSize: const Size(220, 40),
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          side: BorderSide(color: Theme.of(context).colorScheme.primary),
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(4)),
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
         ),
         onPressed: onPressed,
         icon: const Icon(Icons.folder_open),

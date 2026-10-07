@@ -20,8 +20,7 @@ const _accountTypeByValue = <String, PortfolioAccountType>{
   'Other': PortfolioAccountType.other,
 };
 
-PortfolioAccountType _accountTypeFromValue(String value) =>
-    _accountTypeByValue[value] ?? PortfolioAccountType.unknown;
+PortfolioAccountType _accountTypeFromValue(String value) => _accountTypeByValue[value] ?? PortfolioAccountType.unknown;
 
 /// Parses Fidelity "Full View" portfolio export files.
 ///
@@ -29,22 +28,14 @@ PortfolioAccountType _accountTypeFromValue(String value) =>
 /// "Type","Sub type","Account name","Institution","Balance","Balance as of","Hidden"
 ///
 /// Rows with missing fields are ignored.
-Portfolio parseFidelityFullView(
-  String csv, {
-  String type = 'Fidelity Full View',
-  String? fileName,
-}) {
+Portfolio parseFidelityFullView(String csv, {String type = 'Fidelity Full View', String? fileName}) {
   final rows = csv_pkg.Csv().decode(csv);
 
   // The header is the first row that parses into more than one field.
   // This allows for some preamble text in the file, which is common in Fidelity exports.
   final headerIndex = rows.indexWhere((r) => r.length > 1);
   if (headerIndex == -1) {
-    return Portfolio(
-      type: type,
-      exportedDate: DateTime.now(),
-      fileName: fileName,
-    );
+    return Portfolio(type: type, exportedDate: DateTime.now(), fileName: fileName);
   }
 
   // One PortfolioAccount is created per valid account row.
@@ -71,32 +62,13 @@ Portfolio parseFidelityFullView(
     if (typeName.isEmpty || name.isEmpty || institution.isEmpty) continue;
     if (balance == null || updated == null) continue;
 
-    accounts.add(
-      PortfolioAccount(
-        type: _accountTypeFromValue(typeName),
-        name: name,
-        institution: institution,
-        balance: balance,
-        updated: updated,
-      ),
-    );
+    accounts.add(PortfolioAccount(type: _accountTypeFromValue(typeName), name: name, institution: institution, balance: balance, updated: updated));
   }
 
   // Prefer the in-file date; fall back to the account dates.
-  final exportedDate =
-      downloaded ??
-      (accounts.isEmpty
-          ? DateTime.now()
-          : accounts
-                .map((a) => a.updated)
-                .reduce((a, b) => a.isAfter(b) ? a : b));
+  final exportedDate = downloaded ?? (accounts.isEmpty ? DateTime.now() : accounts.map((a) => a.updated).reduce((a, b) => a.isAfter(b) ? a : b));
 
-  return Portfolio(
-    type: type,
-    exportedDate: exportedDate,
-    accounts: accounts,
-    fileName: fileName,
-  );
+  return Portfolio(type: type, exportedDate: exportedDate, accounts: accounts, fileName: fileName);
 }
 
 DateTime? _parseDownloadedDate(String line) {
