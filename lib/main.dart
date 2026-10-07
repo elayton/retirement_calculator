@@ -11,6 +11,13 @@ void main() {
   runApp(const MainApp());
 }
 
+Tab _iconTab(IconData icon, String label) => Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [Icon(icon), const SizedBox(width: 6), Text(label)],
+      ),
+    );
+
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
 
@@ -55,57 +62,12 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
           centerTitle: true,
           bottom: TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.folder_open),
-                    SizedBox(width: 6),
-                    Text('Load'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.summarize),
-                    SizedBox(width: 6),
-                    Text('Summary'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.table_chart),
-                    SizedBox(width: 6),
-                    Text('Breakdown'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.event_note),
-                    SizedBox(width: 6),
-                    Text('Plan'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.compare_arrows),
-                    SizedBox(width: 6),
-                    Text('Compare'),
-                  ],
-                ),
-              ),
+            tabs: [
+              _iconTab(Icons.folder_open, 'Load'),
+              _iconTab(Icons.summarize, 'Summary'),
+              _iconTab(Icons.table_chart, 'Breakdown'),
+              _iconTab(Icons.event_note, 'Plan'),
+              _iconTab(Icons.compare_arrows, 'Compare'),
             ],
           ),
         ),

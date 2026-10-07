@@ -2,6 +2,7 @@ import 'package:csv/csv.dart' as csv_pkg;
 import 'package:intl/intl.dart';
 
 import '../models/portfolio.dart';
+import '../utils/formatting.dart';
 
 /// Maps the raw "Type" column values from a Fidelity "Full View" export to
 /// the app's [PortfolioAccountType].
@@ -117,16 +118,7 @@ double? _parseBalance(String raw) {
 DateTime? _parseDate(String raw) {
   final value = raw.trim();
   if (value.isEmpty) return null;
-  const formats = [
-    'MMM d, yyyy',
-    'MMM dd, yyyy',
-    'MMM-d-yyyy',
-    'MMM-dd-yyyy',
-    'M/d/yyyy',
-    'MM/dd/yyyy',
-    'yyyy-MM-dd',
-  ];
-  for (final f in formats) {
+  for (final f in dateParseFormats) {
     try {
       return DateFormat(f).parseStrict(value);
     } catch (_) {
