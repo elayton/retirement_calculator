@@ -21,7 +21,7 @@ class SummaryPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PortfolioSummaryHeader(portfolio: portfolio),
+          PortfolioTypeAndTotal(portfolio: portfolio),
           const SizedBox(height: 12),
           SortableAccountsTable(
             accounts: portfolio.accounts,

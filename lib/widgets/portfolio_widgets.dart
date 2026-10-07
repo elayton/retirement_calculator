@@ -29,8 +29,8 @@ class NoPortfolioLoaded extends StatelessWidget {
 }
 
 /// The "Portfolio: {type} · Total: {amount}" header line.
-class PortfolioSummaryHeader extends StatelessWidget {
-  const PortfolioSummaryHeader({super.key, required this.portfolio});
+class PortfolioTypeAndTotal extends StatelessWidget {
+  const PortfolioTypeAndTotal({super.key, required this.portfolio});
 
   final Portfolio portfolio;
 
