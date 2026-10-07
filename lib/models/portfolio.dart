@@ -1,10 +1,10 @@
 enum PortfolioAccountType {
   cash('Cash'),
+  brokerage('Brokerage'),
   fourOhOneK('401(k)'),
   traditionalIra('Traditional IRA'),
-  brokerage('Brokerage'),
-  hsa('HSA'),
   rothIra('Roth IRA'),
+  hsa('HSA'),
   annuity('Annuity'),
   fiveTwoNinePlan('529 Plan'),
   creditCard('Credit Card'),
