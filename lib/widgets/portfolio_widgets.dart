@@ -14,6 +14,15 @@ Text boldText(String text) => Text(
       style: const TextStyle(fontWeight: FontWeight.bold),
     );
 
+Text italicText(String text, {Color? color}) => Text(
+      text,
+      style: TextStyle(
+        fontStyle: FontStyle.italic,
+        fontWeight: FontWeight.w500,
+        color: color,
+      ),
+    );
+
 Align rightAlign(Widget child) => Align(
       alignment: Alignment.centerRight,
       child: child,
@@ -91,6 +100,7 @@ class SortableAccountsTable extends StatefulWidget {
     required this.accounts,
     required this.columns,
     this.footerCells,
+    this.topFooterCells,
   });
 
   final List<PortfolioAccount> accounts;
@@ -98,6 +108,9 @@ class SortableAccountsTable extends StatefulWidget {
 
   /// Optional content widgets for a totals row rendered below the accounts.
   final List<Widget>? footerCells;
+
+  /// Optional content widgets for a totals row rendered above the accounts.
+  final List<Widget>? topFooterCells;
 
   @override
   State<SortableAccountsTable> createState() => _SortableAccountsTableState();
@@ -182,6 +195,20 @@ class _SortableAccountsTableState extends State<SortableAccountsTable> {
                 _headerCell(widget.columns[i], i),
             ],
           ),
+          if (widget.topFooterCells != null)
+            TableRow(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    width: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+              ),
+              children: [
+                for (final cell in widget.topFooterCells!) tableCell(cell),
+              ],
+            ),
           // One row per account.
           for (final (i, a) in accounts.indexed)
             TableRow(

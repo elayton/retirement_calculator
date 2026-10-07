@@ -3,6 +3,7 @@ class PlanParameters {
 
   final int retirementAge = 60;
   final int socialSecurityAge = 70;
+  final int spouseSocialSecurityAge = 67;
   final double budget = 7500; // Per month.
   final double medicalInsuranceExpenses = 2871; // Per month.
   final double premiumTaxCredits = 2224; // Per month.

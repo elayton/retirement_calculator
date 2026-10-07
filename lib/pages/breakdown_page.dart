@@ -21,6 +21,38 @@ class BreakdownPage extends StatelessWidget {
         .where((t) => portfolio.accounts.any((a) => a.type == t))
         .toList();
 
+    final totalsRow = [
+      boldText('Total'),
+      for (final t in types)
+        rightAlign(
+          boldText(
+            appCurrency.format(
+              portfolio.accounts
+                  .where((a) => a.type == t)
+                  .fold<double>(0, (sum, a) => sum + a.balance),
+            ),
+          ),
+        ),
+    ];
+
+    final topTotalsRow = [
+      italicText(
+        'Total',
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      for (final t in types)
+        rightAlign(
+          italicText(
+            appCurrency.format(
+              portfolio.accounts
+                  .where((a) => a.type == t)
+                  .fold<double>(0, (sum, a) => sum + a.balance),
+            ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+    ];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -51,19 +83,8 @@ class BreakdownPage extends StatelessWidget {
                   ),
                 ),
             ],
-            footerCells: [
-              boldText('Total'),
-              for (final t in types)
-                rightAlign(
-                  boldText(
-                    appCurrency.format(
-                      portfolio.accounts
-                          .where((a) => a.type == t)
-                          .fold<double>(0, (sum, a) => sum + a.balance),
-                    ),
-                  ),
-                ),
-            ],
+            footerCells: totalsRow,
+            topFooterCells: topTotalsRow,
           ),
         ],
       ),

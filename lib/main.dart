@@ -83,7 +83,7 @@ class _MainAppState extends State<MainApp> with SingleTickerProviderStateMixin {
             ),
             SummaryPage(portfolio: _portfolio),
             BreakdownPage(portfolio: _portfolio),
-            const PlanPage(),
+            PlanPage(portfolio: _portfolio),
             const ComparePage(),
           ],
         ),
