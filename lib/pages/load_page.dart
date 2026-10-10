@@ -4,16 +4,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/portfolio.dart';
-import '../models/portfolio_type.dart';
 import '../parsers/fidelity_full_view_parser.dart';
 
 class LoadPage extends StatefulWidget {
+  final ValueChanged<Portfolio>? onLoaded;
+
   const LoadPage({
     super.key,
     this.onLoaded,
   });
-
-  final ValueChanged<Portfolio>? onLoaded;
 
   @override
   State<LoadPage> createState() => _LoadPageState();
@@ -97,10 +96,13 @@ class _LoadPageState extends State<LoadPage> with AutomaticKeepAliveClientMixin 
 }
 
 class _PortfolioTypeDropdown extends StatelessWidget {
-  const _PortfolioTypeDropdown({required this.initialSelection, required this.onSelected});
-
   final PortfolioType initialSelection;
   final ValueChanged<PortfolioType> onSelected;
+
+  const _PortfolioTypeDropdown({
+    required this.initialSelection,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,9 +134,11 @@ class _PortfolioTypeDropdown extends StatelessWidget {
 }
 
 class _BrowseButton extends StatelessWidget {
-  const _BrowseButton({required this.onPressed});
-
   final VoidCallback onPressed;
+
+  const _BrowseButton({
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {

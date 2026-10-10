@@ -1,6 +1,4 @@
 class PlanParameters {
-  const PlanParameters();
-
   final int retirementAge = 60;
   final int socialSecurityAge = 70;
   final int spouseSocialSecurityAge = 67;
@@ -25,4 +23,6 @@ class PlanParameters {
   final double hsaGrowthRate = 4;
   final int rothIraConversionAge = 60;
   final double rothIraConversion = 80000;
+
+  const PlanParameters();
 }

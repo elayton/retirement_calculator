@@ -5,12 +5,12 @@ import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
 
 class BreakdownPage extends StatelessWidget {
+  final Portfolio? portfolio;
+
   const BreakdownPage({
     super.key,
     this.portfolio,
   });
-
-  final Portfolio? portfolio;
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +23,6 @@ class BreakdownPage extends StatelessWidget {
     final types = PortfolioAccountType.values.where((t) => portfolio.accounts.any((a) => a.type == t)).toList();
 
     final totalsRow = [
-      boldText('Total'),
-      for (final t in types)
-        rightAlign(boldText(appCurrency.format(portfolio.accounts.where((a) => a.type == t).fold<double>(0, (sum, a) => sum + a.balance)))),
-    ];
-
-    final topTotalsRow = [
       italicText('Total', color: Theme.of(context).colorScheme.onSurfaceVariant),
       for (final t in types)
         rightAlign(
@@ -63,7 +57,7 @@ class BreakdownPage extends StatelessWidget {
                 ),
             ],
             footerCells: totalsRow,
-            topFooterCells: topTotalsRow,
+            topFooterCells: totalsRow,
           ),
         ],
       ),

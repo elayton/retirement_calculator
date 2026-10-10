@@ -1,48 +1,55 @@
+import '../models/plan.dart';
 import '../models/plan_parameters.dart';
 import '../models/portfolio.dart';
 
 /// Calculate successive rows of projected account totals by age.
 class PlanCalculator {
+  final PlanParameters parameters;
+  late PlanTotals last;
+  PlanTotals? next;
+
   PlanCalculator({
     this.parameters = const PlanParameters(),
-    Map<PortfolioAccountType, double>? totals,
-  }) : totals = totals ?? <PortfolioAccountType, double>{};
-
-  final PlanParameters parameters;
-  Map<PortfolioAccountType, double> totals;
+    required PlanTotals totals,
+  }) {
+    last = PlanTotals.fromPlanTotals(totals);
+  }
 
   double _growBy(double total, double growthRate) => total * growthRate / 100;
 
-  late Map<PortfolioAccountType, double> next;
-
   void growBrokerage() {
-    final total = next[PortfolioAccountType.brokerage] ?? 0;
-    next[PortfolioAccountType.brokerage] = total + _growBy(total, parameters.brokerageGrowthRate);
+    final growthRate = parameters.brokerageGrowthRate;
+    final total = last.total(PortfolioAccountType.brokerage);
+    next?.add(PortfolioAccountType.brokerage, "Growth", _growBy(total, growthRate));
   }
 
   void growFourOhOneK() {
-    final total = next[PortfolioAccountType.fourOhOneK] ?? 0;
-    next[PortfolioAccountType.fourOhOneK] = total + _growBy(total, parameters.fourOhOneKGrowthRate);
+    final growthRate = parameters.fourOhOneKGrowthRate;
+    final total = last.total(PortfolioAccountType.fourOhOneK);
+    next?.add(PortfolioAccountType.fourOhOneK, "Growth", _growBy(total, growthRate));
   }
 
   void growTraditionalIra() {
-    final total = next[PortfolioAccountType.traditionalIra] ?? 0;
-    next[PortfolioAccountType.traditionalIra] = total + _growBy(total, parameters.traditionalIraGrowthRate);
+    final growthRate = parameters.traditionalIraGrowthRate;
+    final total = last.total(PortfolioAccountType.traditionalIra);
+    next?.add(PortfolioAccountType.traditionalIra, "Growth", _growBy(total, growthRate));
   }
 
   void growRothIra() {
-    final total = next[PortfolioAccountType.rothIra] ?? 0;
-    next[PortfolioAccountType.rothIra] = total + _growBy(total, parameters.rothIraGrowthRate);
+    final growthRate = parameters.rothIraGrowthRate;
+    final total = last.total(PortfolioAccountType.rothIra);
+    next?.add(PortfolioAccountType.rothIra, "Growth", _growBy(total, growthRate));
   }
 
   void growHsa() {
-    final total = next[PortfolioAccountType.hsa] ?? 0;
-    next[PortfolioAccountType.hsa] = total + _growBy(total, parameters.hsaGrowthRate);
+    final growthRate = parameters.hsaGrowthRate;
+    final total = last.total(PortfolioAccountType.hsa);
+    next?.add(PortfolioAccountType.hsa, "Growth", _growBy(total, growthRate));
   }
 
   /// Advance the account totals by one year and return the new totals.
-  Map<PortfolioAccountType, double> calculateNext(int age) {
-    next = Map.of(totals);
+  PlanTotals calculateNext(int age) {
+    next = PlanTotals.fromPlanTotals(last);
 
     growBrokerage();
     growFourOhOneK();
@@ -50,7 +57,7 @@ class PlanCalculator {
     growRothIra();
     growHsa();
 
-    totals = next;
-    return totals;
+    last = next!;
+    return last;
   }
 }

@@ -26,12 +26,12 @@ class NoPortfolioLoaded extends StatelessWidget {
 
 /// The "Portfolio: {type} · Total: {amount}" header line.
 class PortfolioTypeAndTotal extends StatelessWidget {
+  final Portfolio portfolio;
+
   const PortfolioTypeAndTotal({
     super.key,
     required this.portfolio,
   });
-
-  final Portfolio portfolio;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +59,12 @@ class PortfolioTypeAndTotal extends StatelessWidget {
 
 /// Describes one column of a [SortableAccountsTable].
 class AccountColumn {
+  final String title;
+  final bool right;
+  final int flex;
+  final Comparator<PortfolioAccount> compare;
+  final Widget Function(PortfolioAccount account) builder;
+
   const AccountColumn({
     required this.title,
     required this.compare,
@@ -66,24 +72,10 @@ class AccountColumn {
     this.right = false,
     this.flex = 1,
   });
-
-  final String title;
-  final bool right;
-  final int flex;
-  final Comparator<PortfolioAccount> compare;
-  final Widget Function(PortfolioAccount account) builder;
 }
 
 /// A table of accounts whose columns can be sorted by tapping the header.
 class SortableAccountsTable extends StatefulWidget {
-  const SortableAccountsTable({
-    super.key,
-    required this.accounts,
-    required this.columns,
-    this.footerCells,
-    this.topFooterCells,
-  });
-
   final List<PortfolioAccount> accounts;
   final List<AccountColumn> columns;
 
@@ -92,6 +84,14 @@ class SortableAccountsTable extends StatefulWidget {
 
   /// Optional content widgets for a totals row rendered above the accounts.
   final List<Widget>? topFooterCells;
+
+  const SortableAccountsTable({
+    super.key,
+    required this.accounts,
+    required this.columns,
+    this.footerCells,
+    this.topFooterCells,
+  });
 
   @override
   State<SortableAccountsTable> createState() => _SortableAccountsTableState();

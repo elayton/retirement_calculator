@@ -5,12 +5,12 @@ import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
 
 class SummaryPage extends StatelessWidget {
+  final Portfolio? portfolio;
+
   const SummaryPage({
     super.key,
     this.portfolio,
   });
-
-  final Portfolio? portfolio;
 
   @override
   Widget build(BuildContext context) {
