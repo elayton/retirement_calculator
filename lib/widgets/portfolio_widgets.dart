@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../utils/formatting.dart';
 
 /// Standard padding applied to every cell in portfolio tables.
@@ -47,7 +47,7 @@ class PortfolioTypeAndTotal extends StatelessWidget {
             ),
             const TextSpan(text: '  ·  Total: '),
             TextSpan(
-              text: appCurrency.format(total),
+              text: formatCurrency(total),
               style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
             ),
           ],

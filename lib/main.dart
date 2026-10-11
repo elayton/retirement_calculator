@@ -5,7 +5,7 @@ import 'pages/compare_page.dart';
 import 'pages/load_page.dart';
 import 'pages/plan_page.dart';
 import 'pages/summary_page.dart';
-import 'models/portfolio.dart';
+import 'models/portfolio_models.dart';
 
 void main() {
   runApp(const MainApp());

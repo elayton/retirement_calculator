@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../parsers/fidelity_full_view_parser.dart';
 
 class LoadPage extends StatefulWidget {

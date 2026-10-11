@@ -32,13 +32,7 @@ class PortfolioAccount {
   final double balance;
   final DateTime updated;
 
-  const PortfolioAccount({
-    required this.type,
-    required this.name,
-    required this.institution,
-    required this.balance,
-    required this.updated,
-  });
+  const PortfolioAccount({required this.type, required this.name, required this.institution, required this.balance, required this.updated});
 }
 
 class Portfolio {
@@ -47,10 +41,5 @@ class Portfolio {
   final List<PortfolioAccount> accounts;
   final String? fileName;
 
-  const Portfolio({
-    required this.type,
-    required this.exportedDate,
-    this.accounts = const [],
-    this.fileName,
-  });
+  const Portfolio({required this.type, required this.exportedDate, this.accounts = const [], this.fileName});
 }

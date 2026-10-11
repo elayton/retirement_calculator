@@ -1,7 +1,7 @@
 import 'package:csv/csv.dart' as csv_pkg;
 import 'package:intl/intl.dart';
 
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../utils/formatting.dart';
 
 /// Maps the raw "Type" column values from a Fidelity "Full View" export to

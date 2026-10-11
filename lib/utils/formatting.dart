@@ -1,10 +1,9 @@
 import 'package:intl/intl.dart';
 
-/// Currency format used across the app (e.g. "$1,234.56").
-final appCurrency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+final _appCurrency = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
 
-/// Currency format rounded to the nearest dollar (e.g. "$1,235").
-final appCurrencyWhole = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+/// Currency format used across the app, rounded to the nearest dollar (e.g. "$1,235").
+String formatCurrency(num value) => _appCurrency.format(value);
 
 final _dateFormatter = DateFormat('yyyy-MM-dd');
 

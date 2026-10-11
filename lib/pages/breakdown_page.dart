@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
 
@@ -27,7 +27,7 @@ class BreakdownPage extends StatelessWidget {
       for (final t in types)
         rightAlign(
           italicText(
-            appCurrency.format(portfolio.accounts.where((a) => a.type == t).fold<double>(0, (sum, a) => sum + a.balance)),
+            formatCurrency(portfolio.accounts.where((a) => a.type == t).fold<double>(0, (sum, a) => sum + a.balance)),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -53,7 +53,7 @@ class BreakdownPage extends StatelessWidget {
                     final bv = b.type == t ? b.balance : 0.0;
                     return av.compareTo(bv);
                   },
-                  builder: (a) => rightAlign(Text(a.type == t ? appCurrency.format(a.balance) : '')),
+                  builder: (a) => rightAlign(Text(a.type == t ? formatCurrency(a.balance) : '')),
                 ),
             ],
             footerCells: totalsRow,

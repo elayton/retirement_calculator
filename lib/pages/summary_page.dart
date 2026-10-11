@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
 
@@ -35,7 +35,7 @@ class SummaryPage extends StatelessWidget {
                 title: 'Balance',
                 right: true,
                 compare: (a, b) => a.balance.compareTo(b.balance),
-                builder: (a) => rightAlign(Text(appCurrency.format(a.balance))),
+                builder: (a) => rightAlign(Text(formatCurrency(a.balance))),
               ),
               AccountColumn(title: 'Updated', compare: (a, b) => a.updated.compareTo(b.updated), builder: (a) => Text(formatDate(a.updated))),
             ],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/plan.dart';
+import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
-import '../models/portfolio.dart';
+import '../models/portfolio_models.dart';
 import '../calc/plan_calculator.dart';
 import '../utils/formatting.dart';
 import '../widgets/portfolio_widgets.dart';
@@ -11,10 +11,7 @@ import '../widgets/portfolio_widgets.dart';
 class PlanPage extends StatelessWidget {
   final Portfolio? portfolio;
 
-  const PlanPage({
-    super.key,
-    this.portfolio,
-  });
+  const PlanPage({super.key, this.portfolio});
 
   @override
   Widget build(BuildContext context) {
@@ -23,19 +20,12 @@ class PlanPage extends StatelessWidget {
       return const NoPortfolioLoaded();
     }
 
-    final types = <PortfolioAccountType>[
-      PortfolioAccountType.cash,
-      PortfolioAccountType.brokerage,
-      PortfolioAccountType.fourOhOneK,
-      PortfolioAccountType.traditionalIra,
-      PortfolioAccountType.rothIra,
-      PortfolioAccountType.hsa,
-    ];
+    final columns = PlanColumn.values;
 
-    const parameters = PlanParameters();
+    var parameters = PlanParameters();
     var totals = PlanTotals.fromPortfolio(portfolio);
 
-    final calculator = PlanCalculator(parameters: parameters, totals: totals);
+    final calculator = PlanCalculator(portfolioDate: portfolio.exportedDate, parameters: parameters, totals: totals);
 
     final rows = <(int, PlanTotals)>[];
     var age = DateTime.now().year - PlanConstants.birthday.year;
@@ -51,17 +41,13 @@ class PlanPage extends StatelessWidget {
         width: double.infinity,
         child: Table(
           border: TableBorder(verticalInside: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
-          columnWidths: {for (var i = 0; i <= types.length; i++) i: const FlexColumnWidth()},
+          columnWidths: {for (var i = 0; i <= columns.length; i++) i: const FlexColumnWidth()},
           children: [
             TableRow(
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
               ),
-              children: [
-                tableCell(boldText('Age')),
-                for (final t in types) tableCell(rightAlign(boldText(t.label))),
-                tableCell(rightAlign(boldText('Total'))),
-              ],
+              children: [tableCell(boldText('Age')), for (final c in columns) tableCell(rightAlign(boldText(c.label)))],
             ),
             for (final (i, row) in rows.indexed)
               TableRow(
@@ -80,11 +66,7 @@ class PlanPage extends StatelessWidget {
                       ? Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outline))
                       : null,
                 ),
-                children: [
-                  tableCell(Text('${row.$1}')),
-                  for (final t in types) tableCell(rightAlign(Text(appCurrencyWhole.format(row.$2.total(t))))),
-                  tableCell(rightAlign(Text(appCurrencyWhole.format(types.fold<double>(0, (sum, t) => sum + row.$2.total(t)))))),
-                ],
+                children: [tableCell(Text('${row.$1}')), for (final c in columns) tableCell(rightAlign(Text(formatCurrency(row.$2.total(c)))))],
               ),
           ],
         ),
