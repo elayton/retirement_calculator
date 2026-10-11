@@ -2,8 +2,10 @@ abstract final class PlanConstants {
   static final birthday = DateTime(1971, 12, 3);
   static const longevityAge = 100;
 
+  static const fourOhOneKWthdrawalAge = 55;
   static const iraWithdrawalAge = 60;
   static const medicareStartAge = 65;
+  static const rmdStartAge = 75;
 
   static const iraContributionLimit = 8600;
   static const hsaContributionLimit = 9750;
