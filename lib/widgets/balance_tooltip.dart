@@ -3,10 +3,17 @@ import 'package:flutter/material.dart';
 import '../models/plan_models.dart';
 import '../utils/formatting.dart';
 
-/// Colours for the adjustment amounts. They are picked from the light end of
-/// the Material ramps to stay legible on the tooltip's dark default background.
-final _positiveColor = Colors.green.shade300;
-final _negativeColor = Colors.red.shade300;
+/// Colours for the adjustment amounts, stepped by the brightness in effect
+/// because the tooltip's tinted background flips with it. The step is the one
+/// that clears a 4.5 contrast ratio against the composited panel: the deep end
+/// of the ramps on the light tint, the pale end on the dark one. Green and red
+/// mark direction rather than carry it alone — the amount is signed, so the
+/// colour is the second signal, not the only one.
+Color _positiveColor(Brightness brightness) =>
+    brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade900;
+
+Color _negativeColor(Brightness brightness) =>
+    brightness == Brightness.dark ? Colors.red.shade200 : Colors.red.shade900;
 
 /// One currency cell of the plan table, with a tooltip that accounts for the
 /// value: the balance it started from, every adjustment applied since, and the
@@ -38,8 +45,19 @@ class BalanceTooltip extends StatelessWidget {
   }
 }
 
+/// Room between one line of the breakdown and the next. Without it the rows sit
+/// flush, and a stack of flush rows reads as one block of text while the
+/// tooltip's own padding around them looks generous by comparison.
+const _lineGap = 4.0;
+
+/// Extra room above the total, on top of [_lineGap]. The total is the result
+/// the lines above it arrive at, so it is set apart from them rather than
+/// reading as one more entry in the list.
+const _summaryGap = 6.0;
+
 /// The tooltip's contents: the starting balance, one line per adjustment, and
-/// the total. Amounts line up on the right so the column can be scanned.
+/// the total. Amounts line up on the right so the column can be scanned. A
+/// balance that starts at zero leaves the first line out.
 class _BalanceBreakdown extends StatelessWidget {
   const _BalanceBreakdown({required this.balance});
 
@@ -49,7 +67,8 @@ class _BalanceBreakdown extends StatelessWidget {
   /// readable without relying on the colour alone.
   static String _signed(double amount) => '${amount >= 0 ? '+' : ''}${formatCurrency(amount)}';
 
-  static Color _colorFor(double amount) => amount >= 0 ? _positiveColor : _negativeColor;
+  static Color _colorFor(Brightness brightness, double amount) =>
+      amount >= 0 ? _positiveColor(brightness) : _negativeColor(brightness);
 
   Widget _line(String description, String amount, {Color? color, bool bold = false}) {
     // No colour set leaves the tooltip's own text colour, which is what the
@@ -70,6 +89,17 @@ class _BalanceBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+
+    final lines = <Widget>[
+      // A balance can start from nothing, and a line reading "$0" says
+      // nothing the adjustments below it do not already say. Dropped rather
+      // than shown, so the tooltip starts at the first real amount.
+      if (balance.initial != 0) _line('Initial', formatCurrency(balance.initial)),
+      for (final (description, amount) in balance.adjustments)
+        _line(description, _signed(amount), color: _colorFor(brightness, amount)),
+    ];
+
     return IntrinsicWidth(
       // Stretch gives every line the width of the widest one, which is what
       // lines the amounts up on the right.
@@ -77,10 +107,15 @@ class _BalanceBreakdown extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _line('Initial', formatCurrency(balance.initial)),
-          for (final (description, amount) in balance.adjustments) _line(description, _signed(amount), color: _colorFor(amount)),
-          const SizedBox(height: 4),
-          _line('Total', formatCurrency(balance.total), bold: true),
+          // The gap rides on the bottom of each line rather than between them,
+          // so a line that drops out takes its spacing with it and the rest of
+          // the column does not shift.
+          for (final line in lines)
+            Padding(padding: const EdgeInsets.only(bottom: _lineGap), child: line),
+          Padding(
+            padding: const EdgeInsets.only(top: _summaryGap),
+            child: _line('Total', formatCurrency(balance.total), bold: true),
+          ),
         ],
       ),
     );
