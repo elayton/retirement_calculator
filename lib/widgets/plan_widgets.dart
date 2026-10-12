@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/plan_constants.dart';
-import '../models/plan_parameters.dart';
-
 /// Width of the value box, shared by the editable and fixed fields so the
 /// numbers line up down the section. Wide enough for a value and its unit,
 /// such as "$7,500/mo".
@@ -12,392 +9,63 @@ const _valueBoxWidth = 100.0;
 /// Height of the value box, likewise shared.
 const _valueBoxHeight = 36.0;
 
-/// The space taken by the gap and the stepper arrows of an editable field,
-/// reserved by a fixed field so both align.
-const _trailingWidth = 28.0;
+/// Gap between a label and its value box.
+const _labelGap = 8.0;
 
-/// The floor for every rate field. A rate may be negative, down to a total
-/// wipeout, but never below that.
-const _minRate = -100.0;
+/// Width of the stepper column beside the value box, which holds one arrow
+/// across. A field with no steppers reserves the same width of blank, so
+/// every box in a section lines up.
+const _stepperWidth = 24.0;
 
-/// Below this page width the sidebar sits above the table instead of beside it.
-const planSidebarBreakpoint = 1000.0;
+/// Height of a single stepper arrow; two of them stack into the column.
+const _stepperHeight = 16.0;
 
-/// The fixed width of the sidebar when it sits beside the table.
-const planSidebarWidth = 300.0;
+/// Gap between the value box and the stepper column.
+const _stepperGap = 4.0;
 
-/// Sidebar section titles, in display order. Each one stands in for a group of
-/// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Market Downturns', 'Roth Conversion'];
-
-/// The left sidebar of the plan page: a vertical stack of accordions, one per
-/// group of plan parameters.
-///
-/// Parameters are edited in place on [parameters]; [onChanged] is called after
-/// each edit so the page can rebuild the projection table from the new values.
-class PlanSidebar extends StatelessWidget {
-  const PlanSidebar({super.key, required this.parameters, required this.onChanged, this.width = planSidebarWidth});
-
-  final PlanParameters parameters;
-  final VoidCallback onChanged;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+/// The row shared by every field below: a label that soaks up the slack, the
+/// value box, then the stepper column or an equally wide blank. Keeping the
+/// trailing chrome in one place is what lines the boxes up.
+Widget _fieldRow(String label, Widget box, {Widget? stepper, String? help}) {
+  final row = Row(
+    // A value box draws its text a little above the middle, so centring the
+    // label on the box leaves the two about 5px apart. Aligning the baselines
+    // puts the label on the same line as the digits instead.
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Expanded(child: Text(label)),
+      const SizedBox(width: _labelGap),
+      // Box and stepper travel as one piece. The stepper holds no text and so
+      // reports no baseline, which leaves this row reporting the box's while
+      // the stepper is centred against it.
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // One accordion per section, stacked vertically; the ones without
-          // controls yet collapse to a placeholder body.
-          for (final (i, title) in planSidebarSections.indexed) ...[
-            if (i > 0) const SizedBox(height: 4),
-            _SidebarSection(title: title, children: _sectionFields(title, context)),
-          ],
+          box,
+          const SizedBox(width: _stepperGap),
+          SizedBox(width: _stepperWidth, child: stepper),
         ],
       ),
-    );
-  }
+    ],
+  );
 
-  /// The controls belonging to [title], or null for a section whose parameters
-  /// have no fields yet.
-  List<Widget>? _sectionFields(String title, BuildContext context) {
-    return switch (title) {
-      'Timeline' => [_timelineFields(context)],
-      'Expenses' => [_expenseFields(context)],
-      'Salary' => [_salaryFields(context)],
-      'Growth' => [_growthFields(context)],
-      'Market Downturns' => [_downturnFields(context)],
-      _ => null,
-    };
-  }
-
-  /// The controls for the ages that drive the projection.
-  Widget _timelineFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _IntegerField(
-          label: 'Retirement Age',
-          value: parameters.retirementAge,
-          help: 'Age at which salary income stops and retirement spending begins.',
-          onChanged: (value) {
-            parameters.retirementAge = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _IntegerField(
-          label: 'Social Security Age',
-          value: parameters.socialSecurityAge,
-          help: 'Age at which Social Security income begins.',
-          onChanged: (value) {
-            parameters.socialSecurityAge = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _IntegerField(
-          label: 'Spouse Social Security Age',
-          value: parameters.spouseSocialSecurityAge,
-          help: 'Age at which the spouse Social Security income begins.',
-          onChanged: (value) {
-            parameters.spouseSocialSecurityAge = value;
-            onChanged();
-          },
-        ),
-        Divider(height: 20, color: Theme.of(context).colorScheme.outlineVariant),
-        _ConstantField(
-          label: '401(k) Withdrawal Age',
-          value: PlanConstants.fourOhOneKWthdrawalAge,
-          help: 'Rule of 55 allows penalty-free 401(k) withdrawals.',
-        ),
-        const SizedBox(height: 8),
-        _ConstantField(
-          label: 'IRA Withdrawal Age',
-          value: PlanConstants.iraWithdrawalAge,
-          help: 'Earliest penalty-free IRA withdrawals.',
-        ),
-        const SizedBox(height: 8),
-        _ConstantField(
-          label: 'Medicare Start Age',
-          value: PlanConstants.medicareStartAge,
-          help: 'Medicare premiums replace medical insurance from this age.',
-        ),
-        const SizedBox(height: 8),
-        _ConstantField(
-          label: 'RMD Start Age',
-          value: PlanConstants.rmdStartAge,
-          help: 'Required minimum distributions from retirement accounts begin at this age.',
-        ),
-      ],
-    );
-  }
-
-  /// The controls for monthly expenses.
-  Widget _expenseFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _NumberField(
-          label: 'Budget',
-          value: parameters.budget,
-          step: 100,
-          prefix: r'$',
-          suffix: '/mo',
-          help: 'Monthly spending in retirement, excluding health insurance.',
-          onChanged: (value) {
-            parameters.budget = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Medical Insurance',
-          value: parameters.medicalInsurance,
-          step: 50,
-          prefix: r'$',
-          suffix: '/mo',
-          help: 'Private health insurance monthly premium before Medicare starts at ${PlanConstants.medicareStartAge}.',
-          onChanged: (value) {
-            parameters.medicalInsurance = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Medicare',
-          value: parameters.medicare,
-          step: 50,
-          prefix: r'$',
-          suffix: '/mo',
-          help: 'Monthly premium once Medicare starts at ${PlanConstants.medicareStartAge}.',
-          onChanged: (value) {
-            parameters.medicare = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Inflation Rate',
-          value: parameters.inflationRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Expected annual rate by which spending and premiums increase.',
-          onChanged: (value) {
-            parameters.inflationRate = value;
-            onChanged();
-          },
-        ),
-      ],
-    );
-  }
-
-  /// The controls for earned income while working.
-  Widget _salaryFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _NumberField(
-          label: 'Base Salary',
-          value: parameters.baseSalary,
-          step: 5000,
-          prefix: r'$',
-          help: 'Annual salary before bonus, taxes, and retirement contributions.',
-          onChanged: (value) {
-            parameters.baseSalary = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Bonus Rate',
-          value: parameters.bonusRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual bonus, as a percentage of the base salary.',
-          onChanged: (value) {
-            parameters.bonusRate = value;
-            onChanged();
-          },
-        ),
-      ],
-    );
-  }
-
-  /// The controls for the annual return assumed on each account.
-  Widget _growthFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _NumberField(
-          label: 'Brokerage Growth Rate',
-          value: parameters.brokerageGrowthRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual return on the taxable brokerage balance.',
-          onChanged: (value) {
-            parameters.brokerageGrowthRate = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: '401(k) Growth Rate',
-          value: parameters.fourOhOneKGrowthRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual return on the 401(k) balance.',
-          onChanged: (value) {
-            parameters.fourOhOneKGrowthRate = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Traditional IRA Growth Rate',
-          value: parameters.traditionalIraGrowthRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual return on the pre-tax traditional IRA balance.',
-          onChanged: (value) {
-            parameters.traditionalIraGrowthRate = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Roth IRA Growth Rate',
-          value: parameters.rothIraGrowthRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual return on the after-tax Roth IRA balance.',
-          onChanged: (value) {
-            parameters.rothIraGrowthRate = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'HSA Growth Rate',
-          value: parameters.hsaGrowthRate,
-          decimalPlaces: 2,
-          step: 0.5,
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Annual return on the HSA balance above the cash threshold.',
-          onChanged: (value) {
-            parameters.hsaGrowthRate = value;
-            onChanged();
-          },
-        ),
-      ],
-    );
-  }
-
-  /// The controls for the ages a market drop is applied at, and how deep it is.
-  Widget _downturnFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _AgeListField(
-          label: 'Downturn Ages',
-          value: parameters.downMarketAges,
-          help: 'Ages at which a downturn strikes, separated by commas.',
-          onChanged: (value) {
-            parameters.downMarketAges = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        _NumberField(
-          label: 'Downturn Rate',
-          value: parameters.downMarketRate,
-          decimalPlaces: 2,
-          step: 5,
-          // A downturn is a loss, so the field has to reach below zero.
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Change applied to the portfolio in a downturn year.',
-          onChanged: (value) {
-            parameters.downMarketRate = value;
-            onChanged();
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// A single expandable section; sections without controls show a placeholder.
-class _SidebarSection extends StatelessWidget {
-  final String title;
-  final List<Widget>? children;
-
-  const _SidebarSection({required this.title, this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Material(
-        color: colorScheme.surfaceContainerLow,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-          side: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        child: ExpansionTile(
-          // Collapsed by default; the trailing arrow opens and closes the section.
-          shape: const Border(),
-          collapsedShape: const Border(),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          children:
-              children ??
-              [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Coming soon.',
-                    style: TextStyle(fontStyle: FontStyle.italic, color: colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              ],
-        ),
-      ),
-    );
-  }
+  return help == null ? row : Tooltip(message: help, child: row);
 }
 
 /// A labeled box that edits one integer plan parameter.
-class _IntegerField extends StatelessWidget {
+class IntegerField extends StatelessWidget {
   final String label;
   final int value;
   final ValueChanged<int> onChanged;
   final String? help;
 
-  const _IntegerField({required this.label, required this.value, required this.onChanged, this.help});
+  const IntegerField({super.key, required this.label, required this.value, required this.onChanged, this.help});
 
   @override
   Widget build(BuildContext context) {
-    return _NumberField(
+    return NumberField(
       label: label,
       value: value.toDouble(),
       help: help,
@@ -412,7 +80,7 @@ class _IntegerField extends StatelessWidget {
 /// more for money and rates. [prefix] and [suffix] name the unit inside the
 /// box, and [help] spells out the parameter out on hover. [minValue] floors the
 /// value and the arrows; a negative floor also lets the box accept a minus sign.
-class _NumberField extends StatefulWidget {
+class NumberField extends StatefulWidget {
   final String label;
   final double value;
   final ValueChanged<double> onChanged;
@@ -423,7 +91,8 @@ class _NumberField extends StatefulWidget {
   final String? suffix;
   final String? help;
 
-  const _NumberField({
+  const NumberField({
+    super.key,
     required this.label,
     required this.value,
     required this.onChanged,
@@ -436,10 +105,10 @@ class _NumberField extends StatefulWidget {
   });
 
   @override
-  State<_NumberField> createState() => _NumberFieldState();
+  State<NumberField> createState() => NumberFieldState();
 }
 
-class _NumberFieldState extends State<_NumberField> {
+class NumberFieldState extends State<NumberField> {
   /// An emptied box falls back to zero, whatever the field's floor is.
   static const emptyValue = 0.0;
 
@@ -516,8 +185,15 @@ class _NumberFieldState extends State<_NumberField> {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 24, height: 16),
-      style: IconButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.primary),
+      // Under Material 3 an IconButton keeps the 40x40 default minimum and
+      // ignores the `constraints` constructor argument, so the size the layout
+      // is built around has to be set through the style instead.
+      style: IconButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.primary,
+        minimumSize: const Size(_stepperWidth, _stepperHeight),
+        maximumSize: const Size(_stepperWidth, _stepperHeight),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 
@@ -527,60 +203,55 @@ class _NumberFieldState extends State<_NumberField> {
     // The unit sits outside the number, so it does not move with the digits.
     final unitStyle = TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12);
 
-    final field = Row(
-      children: [
-        Expanded(child: Text(widget.label)),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: _valueBoxWidth,
-          child: TextField(
-            controller: _controller,
-            textAlign: TextAlign.right,
-            keyboardType: TextInputType.numberWithOptions(decimal: widget.decimalPlaces > 0, signed: _isSigned),
-            inputFormatters: [_formatter],
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              constraints: const BoxConstraints.tightFor(height: _valueBoxHeight),
-              prefixText: widget.prefix,
-              prefixStyle: unitStyle,
-              suffixText: widget.suffix,
-              suffixStyle: unitStyle,
-            ),
-            onChanged: _onChanged,
+    return _fieldRow(
+      widget.label,
+      SizedBox(
+        width: _valueBoxWidth,
+        child: TextField(
+          controller: _controller,
+          textAlign: TextAlign.right,
+          keyboardType: TextInputType.numberWithOptions(decimal: widget.decimalPlaces > 0, signed: _isSigned),
+          inputFormatters: [_formatter],
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            constraints: const BoxConstraints.tightFor(height: _valueBoxHeight),
+            prefixText: widget.prefix,
+            prefixStyle: unitStyle,
+            suffixText: widget.suffix,
+            suffixStyle: unitStyle,
           ),
+          onChanged: _onChanged,
         ),
-        const SizedBox(width: 4),
-        // Arrows step the value without touching the keyboard.
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _arrow(Icons.keyboard_arrow_up, 'Increase', () => _step(widget.step)),
-            _arrow(Icons.keyboard_arrow_down, 'Decrease', _value > widget.minValue ? () => _step(-widget.step) : null),
-          ],
-        ),
-      ],
+      ),
+      // Arrows step the value without touching the keyboard.
+      stepper: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _arrow(Icons.keyboard_arrow_up, 'Increase', () => _step(widget.step)),
+          _arrow(Icons.keyboard_arrow_down, 'Decrease', _value > widget.minValue ? () => _step(-widget.step) : null),
+        ],
+      ),
+      help: widget.help,
     );
-
-    return widget.help == null ? field : Tooltip(message: widget.help!, child: field);
   }
 }
 
 /// A labeled box that edits a list of ages typed as a comma-delimited string,
 /// such as "65, 70, 73".
-class _AgeListField extends StatefulWidget {
+class AgeListField extends StatefulWidget {
   final String label;
   final List<int> value;
   final ValueChanged<List<int>> onChanged;
   final String? help;
 
-  const _AgeListField({required this.label, required this.value, required this.onChanged, this.help});
+  const AgeListField({super.key, required this.label, required this.value, required this.onChanged, this.help});
 
   @override
-  State<_AgeListField> createState() => _AgeListFieldState();
+  State<AgeListField> createState() => AgeListFieldState();
 }
 
-class _AgeListFieldState extends State<_AgeListField> {
+class AgeListFieldState extends State<AgeListField> {
   late final TextEditingController _controller = TextEditingController(text: widget.value.join(', '));
 
   /// Digits and separators only, so the box can never hold a stray letter.
@@ -604,64 +275,52 @@ class _AgeListFieldState extends State<_AgeListField> {
 
   @override
   Widget build(BuildContext context) {
-    final field = Row(
-      children: [
-        Expanded(child: Text(widget.label)),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: _valueBoxWidth,
-          child: TextField(
-            controller: _controller,
-            textAlign: TextAlign.right,
-            keyboardType: TextInputType.number,
-            inputFormatters: [_formatter],
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              constraints: const BoxConstraints.tightFor(height: _valueBoxHeight),
-            ),
-            onChanged: (text) => widget.onChanged(_parse(text)),
+    return _fieldRow(
+      widget.label,
+      SizedBox(
+        width: _valueBoxWidth,
+        child: TextField(
+          controller: _controller,
+          textAlign: TextAlign.right,
+          keyboardType: TextInputType.number,
+          inputFormatters: [_formatter],
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            constraints: const BoxConstraints.tightFor(height: _valueBoxHeight),
           ),
+          onChanged: (text) => widget.onChanged(_parse(text)),
         ),
-        const SizedBox(width: 4),
-        // Aligns with the stepper arrows on the editable fields above.
-        const SizedBox(width: _trailingWidth),
-      ],
+      ),
+      help: widget.help,
     );
-
-    return widget.help == null ? field : Tooltip(message: widget.help!, child: field);
   }
 }
 
-/// A labeled age that comes from [PlanConstants] and cannot be edited.
-class _ConstantField extends StatelessWidget {
+/// A labeled age that cannot be edited.
+class ConstantField extends StatelessWidget {
   final String label;
   final int value;
   final String? help;
 
-  const _ConstantField({required this.label, required this.value, this.help});
+  const ConstantField({super.key, required this.label, required this.value, this.help});
 
   @override
   Widget build(BuildContext context) {
-    final field = Row(
-      children: [
-        Expanded(child: Text(label)),
-        const SizedBox(width: 8),
-        // Right-aligned into the same column as the editable boxes above, so
-        // the ages still line up without needing a box of their own.
-        SizedBox(
-          width: _valueBoxWidth,
-          child: Text(
-            '$value',
-            textAlign: TextAlign.right,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
+    return _fieldRow(
+      label,
+      // Right-aligned into the same column as the editable boxes, so the ages
+      // still line up without needing a box of their own. The box is as tall
+      // as one they use, which keeps the rows evenly spaced.
+      SizedBox(
+        width: _valueBoxWidth,
+        height: _valueBoxHeight,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text('$value', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ),
-        // Aligns with the stepper arrows on the editable fields above.
-        const SizedBox(width: _trailingWidth),
-      ],
+      ),
+      help: help,
     );
-
-    return help == null ? field : Tooltip(message: help!, child: field);
   }
 }

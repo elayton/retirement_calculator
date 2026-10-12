@@ -6,7 +6,7 @@ import '../models/plan_parameters.dart';
 import '../models/portfolio_models.dart';
 import '../calc/plan_calculator.dart';
 import '../utils/formatting.dart';
-import '../widgets/plan_widgets.dart';
+import '../widgets/plan_sidebar.dart';
 import '../widgets/portfolio_widgets.dart';
 
 class PlanPage extends StatefulWidget {
