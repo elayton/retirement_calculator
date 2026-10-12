@@ -35,25 +35,28 @@ class PlanCalculator {
 
   double _monthlyToAnnual(double monthly) => monthly * 12;
 
-  bool _isAfterRetirement() => age! >= parameters.retirementAge;
+  bool _isAfterRetirementAge() => age! >= parameters.retirementAge;
 
-  bool _isAfterMedicare() => age! >= PlanConstants.medicareStartAge;
+  bool _isAfterMedicareAge() => age! >= PlanConstants.medicareStartAge;
 
-  bool _isAfterSocialSecurity() => age! >= parameters.socialSecurityAge;
+  bool _isAfterSocialSecurityAge() => age! >= parameters.socialSecurityAge;
 
-  bool _isAfterSpouseSocialSecurity() => age! >= parameters.spouseSocialSecurityAge;
+  bool _isAfterSpouseSocialSecurityAge() => age! >= parameters.spouseSocialSecurityAge;
 
   void setExpenses() {
-    if (_isAfterRetirement()) {
+    if (_isAfterRetirementAge()) {
       final budget = _monthlyToAnnual(parameters.budget);
       next?.add(PlanColumn.expenses, "Budget", budget);
 
-      if (_isAfterMedicare()) {
+      if (_isAfterMedicareAge()) {
         final medicare = _monthlyToAnnual(parameters.medicare);
         next?.add(PlanColumn.expenses, "Medicare", medicare);
       } else {
         final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance);
         next?.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
+        
+        final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits);
+        next?.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
       }
     }
   }

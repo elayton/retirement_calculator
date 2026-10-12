@@ -60,6 +60,10 @@ class PlanTotals {
     balances[PlanColumn.hsa] = PlanBalance(initial: that.balances[PlanColumn.hsa]?.total ?? 0);
   }
 
+  /// The balance tracking [column], or an empty one for a column this portfolio
+  /// holds no account in.
+  PlanBalance balanceOf(PlanColumn column) => balances[column] ?? PlanBalance();
+
   double total(PlanColumn column) => balances[column]?.total ?? 0;
 
   void add(PlanColumn column, String description, double amount) {

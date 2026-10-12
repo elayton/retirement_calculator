@@ -5,9 +5,9 @@ import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
 import '../models/portfolio_models.dart';
 import '../calc/plan_calculator.dart';
-import '../utils/formatting.dart';
 import '../widgets/plan_sidebar.dart';
 import '../widgets/portfolio_widgets.dart';
+import '../widgets/balance_tooltip.dart';
 
 class PlanPage extends StatefulWidget {
   final Portfolio? portfolio;
@@ -119,7 +119,10 @@ class _PlanPageState extends State<PlanPage> {
                   ? Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outline))
                   : null,
             ),
-            children: [tableCell(Text('${row.$1}')), for (final c in columns) tableCell(rightAlign(Text(formatCurrency(row.$2.total(c)))))],
+            children: [
+              tableCell(Text('${row.$1}')),
+              for (final c in columns) tableCell(BalanceTooltip(balance: row.$2.balanceOf(c))),
+            ],
           ),
       ],
     );

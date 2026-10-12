@@ -15,12 +15,12 @@ class PlanParameters {
   double fourOhOneKGrowthRate = 8;
   double traditionalIraGrowthRate = 8;
   double rothIraGrowthRate = 8;
+  double hsaInvestmentThreshold = 2500;
+  double hsaGrowthRate = 4;
   List<int> downMarketAges = const [];
   double downMarketRate = -50;
   double brokerageContributions = 0;
   double rothIraContributions = 0;
-  double hsaInvestmentThreshold = 2500;
-  double hsaGrowthRate = 4;
   int rothIraConversionAge = 60;
   double rothIraConversion = 80000;
 }
