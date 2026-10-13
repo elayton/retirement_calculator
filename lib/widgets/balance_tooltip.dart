@@ -19,9 +19,9 @@ Color _negativeColor(Brightness brightness) =>
 /// value: the balance it started from, every adjustment applied since, and the
 /// total they add up to.
 class BalanceTooltip extends StatelessWidget {
-  const BalanceTooltip({super.key, required this.balance});
-
   final PlanBalance balance;
+
+  const BalanceTooltip({super.key, required this.balance});
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +59,9 @@ const _summaryGap = 6.0;
 /// the total. Amounts line up on the right so the column can be scanned. A
 /// balance that starts at zero leaves the first line out.
 class _BalanceBreakdown extends StatelessWidget {
-  const _BalanceBreakdown({required this.balance});
-
   final PlanBalance balance;
+
+  const _BalanceBreakdown({required this.balance});
 
   /// An amount as it appears in an adjustment line, signed so the direction is
   /// readable without relying on the colour alone.

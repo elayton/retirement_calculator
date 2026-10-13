@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
@@ -14,6 +16,8 @@ class PlanCalculator {
   /// Number of iteration steps completed so far.
   int _iteration = 0;
 
+  /// Begin a projection from [totals], copying them into the shape the
+  /// per-year steps below expect to read and add to.
   PlanCalculator({required this.portfolioDate, required this.parameters, required PlanTotals totals}) {
     last = PlanTotals.fromPlanTotals(totals);
   }
@@ -22,6 +26,9 @@ class PlanCalculator {
   /// bonus rate applied to a salary.
   double _percentageOf(double amount, double rate) => amount * rate / 100;
 
+  /// Scale [amount] to the share of the export year still to come, so a
+  /// portfolio exported in June does not project a whole year of income or
+  /// growth at once. Every year after the first runs at full size.
   double _prorate(double amount) {
     if (_iteration > 0) return amount;
 
@@ -35,92 +42,121 @@ class PlanCalculator {
     return amount * daysLeftInYear / 365;
   }
 
+  /// [monthly] as an annual figure. The parameters are entered per month, while
+  /// the projection steps a year at a time.
   double _monthlyToAnnual(double monthly) => monthly * 12;
 
+  /// Whether the projection has passed retirement. Strictly after, so the year
+  /// that reaches the retirement age still counts as working.
   bool _isAfterRetirementAge() => age! > parameters.retirementAge;
 
+  /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
+  /// Whether Social Security has started.
   bool _isAfterSocialSecurityAge() => age! > parameters.socialSecurityAge;
 
+  /// Whether spouse's Social Security has started, which may fall earlier
+  /// or later.
   bool _isAfterSpouseSocialSecurityAge() => age! > parameters.spouseSocialSecurityAge;
 
   /// Money coming in over the year: salary and bonus while working, then
   /// Social Security from the ages it starts at. Social Security keeps running
   /// after retirement, and the two can overlap with the working years and with
   /// each other, so each source is added on its own terms.
-  void setIncome() {
+  void _setIncome() {
     if (!_isAfterRetirementAge()) {
       final salary = parameters.baseSalary;
-      next?.add(PlanColumn.income, "Salary", salary);
+      next!.add(PlanColumn.income, "Salary", salary);
 
       final bonus = _percentageOf(salary, parameters.bonusRate);
-      next?.add(PlanColumn.income, "Bonus", bonus);
+      next!.add(PlanColumn.income, "Bonus", bonus);
     }
 
     if (_isAfterSocialSecurityAge()) {
       final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.socialSecurityAge]?.toDouble() ?? 0;
-      next?.add(PlanColumn.income, "Social Security", _monthlyToAnnual(benefit));
+      next!.add(PlanColumn.income, "Social Security", _monthlyToAnnual(benefit));
     }
 
     if (_isAfterSpouseSocialSecurityAge()) {
-      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.spouseSocialSecurityAge]?.toDouble() ?? 0 / 2;
-      next?.add(PlanColumn.income, "Spouse Social Security", _monthlyToAnnual(benefit));
+      final benefit = (PlanConstants.socialSecurityBenefitByAge[parameters.spouseSocialSecurityAge]?.toDouble() ?? 0) / 2;
+      next!.add(PlanColumn.income, "Spouse Social Security", _monthlyToAnnual(benefit));
     }
   }
 
-  void setExpenses() {
+  /// Money going out over the year, and only once the projection has retired:
+  /// the budget, plus whichever health insurance applies, less any premium tax
+  /// credits offsetting the years before Medicare takes over.
+  void _setExpenses() {
     if (_isAfterRetirementAge()) {
       final budget = _monthlyToAnnual(parameters.budget);
-      next?.add(PlanColumn.expenses, "Budget", budget);
+      next!.add(PlanColumn.expenses, "Budget", budget);
 
       if (_isAfterMedicareAge()) {
         final medicare = _monthlyToAnnual(parameters.medicare);
-        next?.add(PlanColumn.expenses, "Medicare", medicare);
+        next!.add(PlanColumn.expenses, "Medicare", medicare);
       } else {
         final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance);
-        next?.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
+        next!.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
         
         final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits);
-        next?.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
+        next!.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
+      }
+    }
+
+    next!.unpaidExpenses = next!.totalOf(PlanColumn.expenses);
+  }
+
+  /// Withdraw from the brokerage account to pay unpaid expenses.
+  void _withdrawFromBrokerage() {
+    if (_isAfterRetirementAge()) {
+      if (next!.unpaidExpenses > 0) {
+        next!.brokerageWithdrawal = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
+        next!.sub(PlanColumn.brokerage, "Pay Expenses", next!.brokerageWithdrawal);
+        next!.unpaidExpenses -= next!.brokerageWithdrawal;
       }
     }
   }
 
-  void growBrokerage() {
+  /// Add a year of growth to the brokerage balance.
+  void _growBrokerage() {
     final growthRate = parameters.brokerageGrowthRate;
-    final total = last.total(PlanColumn.brokerage);
+    final total = last.totalOf(PlanColumn.brokerage);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next?.add(PlanColumn.brokerage, "Growth", growthAmount);
+    next!.add(PlanColumn.brokerage, "Growth", growthAmount);
   }
 
-  void growFourOhOneK() {
+  /// Add a year of growth to the 401(k) balance.
+  void _growFourOhOneK() {
     final growthRate = parameters.fourOhOneKGrowthRate;
-    final total = last.total(PlanColumn.fourOhOneK);
+    final total = last.totalOf(PlanColumn.fourOhOneK);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next?.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
+    next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
   }
 
-  void growTraditionalIra() {
+  /// Add a year of growth to the pre-tax traditional IRA balance.
+  void _growTraditionalIra() {
     final growthRate = parameters.traditionalIraGrowthRate;
-    final total = last.total(PlanColumn.traditionalIra);
+    final total = last.totalOf(PlanColumn.traditionalIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next?.add(PlanColumn.traditionalIra, "Growth", growthAmount);
+    next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
   }
 
-  void growRothIra() {
+  /// Add a year of growth to the after-tax Roth IRA balance.
+  void _growRothIra() {
     final growthRate = parameters.rothIraGrowthRate;
-    final total = last.total(PlanColumn.rothIra);
+    final total = last.totalOf(PlanColumn.rothIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next?.add(PlanColumn.rothIra, "Growth", growthAmount);
+    next!.add(PlanColumn.rothIra, "Growth", growthAmount);
   }
 
-  void growHsa() {
+  /// Add a year of growth to the invested HSA balance.
+  void _growHsa() {
     final growthRate = parameters.hsaGrowthRate;
     final investmentThreshold = parameters.hsaInvestmentThreshold;
-    final total = last.total(PlanColumn.hsa) - investmentThreshold;
+    final total = last.totalOf(PlanColumn.hsa) - investmentThreshold;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next?.add(PlanColumn.hsa, "Growth", growthAmount);
+    next!.add(PlanColumn.hsa, "Growth", growthAmount);
   }
 
   /// Advance the account totals by one year and return the new totals.
@@ -128,14 +164,16 @@ class PlanCalculator {
     this.age = age;
     next = PlanTotals.fromPlanTotals(last);
 
-    setIncome();
-    setExpenses();
+    _setIncome();
+    _setExpenses();
 
-    growBrokerage();
-    growFourOhOneK();
-    growTraditionalIra();
-    growRothIra();
-    growHsa();
+    _withdrawFromBrokerage();
+
+    _growBrokerage();
+    _growFourOhOneK();
+    _growTraditionalIra();
+    _growRothIra();
+    _growHsa();
 
     ++_iteration;
 

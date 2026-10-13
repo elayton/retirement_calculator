@@ -42,6 +42,8 @@ class PlanBalance {
 
 class PlanTotals {
   final Map<PlanColumn, PlanBalance> balances = {};
+  double unpaidExpenses = 0;
+  double brokerageWithdrawal = 0;
 
   PlanTotals.fromPortfolio(Portfolio portfolio) {
     for (final account in portfolio.accounts) {
@@ -65,7 +67,7 @@ class PlanTotals {
   /// holds no account in.
   PlanBalance balanceOf(PlanColumn column) => balances[column] ?? PlanBalance();
 
-  double total(PlanColumn column) => balances[column]?.total ?? 0;
+  double totalOf(PlanColumn column) => balances[column]?.total ?? 0;
 
   void add(PlanColumn column, String description, double amount) {
     balances.putIfAbsent(column, () => PlanBalance()).add(description, amount);

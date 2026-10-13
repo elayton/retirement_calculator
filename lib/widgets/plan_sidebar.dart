@@ -24,11 +24,11 @@ const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth',
 /// Parameters are edited in place on [parameters]; [onChanged] is called after
 /// each edit so the page can rebuild the projection table from the new values.
 class PlanSidebar extends StatelessWidget {
-  const PlanSidebar({super.key, required this.parameters, required this.onChanged, this.width = planSidebarWidth});
-
   final PlanParameters parameters;
   final VoidCallback onChanged;
   final double width;
+
+  const PlanSidebar({super.key, required this.parameters, required this.onChanged, this.width = planSidebarWidth});
 
   @override
   Widget build(BuildContext context) {
