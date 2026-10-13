@@ -2,6 +2,7 @@ import 'portfolio_models.dart';
 
 enum PlanColumn {
   expenses('Expenses'),
+  income('Income'),
   cash('Cash'),
   brokerage('Brokerage'),
   fourOhOneK('401(k)'),

@@ -18,7 +18,9 @@ class PlanCalculator {
     last = PlanTotals.fromPlanTotals(totals);
   }
 
-  double _growBy(double total, double growthRate) => total * growthRate / 100;
+  /// [rate] percent of [amount]: a growth rate applied to a balance, or a
+  /// bonus rate applied to a salary.
+  double _percentageOf(double amount, double rate) => amount * rate / 100;
 
   double _prorate(double amount) {
     if (_iteration > 0) return amount;
@@ -35,13 +37,37 @@ class PlanCalculator {
 
   double _monthlyToAnnual(double monthly) => monthly * 12;
 
-  bool _isAfterRetirementAge() => age! >= parameters.retirementAge;
+  bool _isAfterRetirementAge() => age! > parameters.retirementAge;
 
-  bool _isAfterMedicareAge() => age! >= PlanConstants.medicareStartAge;
+  bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
-  bool _isAfterSocialSecurityAge() => age! >= parameters.socialSecurityAge;
+  bool _isAfterSocialSecurityAge() => age! > parameters.socialSecurityAge;
 
-  bool _isAfterSpouseSocialSecurityAge() => age! >= parameters.spouseSocialSecurityAge;
+  bool _isAfterSpouseSocialSecurityAge() => age! > parameters.spouseSocialSecurityAge;
+
+  /// Money coming in over the year: salary and bonus while working, then
+  /// Social Security from the ages it starts at. Social Security keeps running
+  /// after retirement, and the two can overlap with the working years and with
+  /// each other, so each source is added on its own terms.
+  void setIncome() {
+    if (!_isAfterRetirementAge()) {
+      final salary = parameters.baseSalary;
+      next?.add(PlanColumn.income, "Salary", salary);
+
+      final bonus = _percentageOf(salary, parameters.bonusRate);
+      next?.add(PlanColumn.income, "Bonus", bonus);
+    }
+
+    if (_isAfterSocialSecurityAge()) {
+      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.socialSecurityAge]?.toDouble() ?? 0;
+      next?.add(PlanColumn.income, "Social Security", _monthlyToAnnual(benefit));
+    }
+
+    if (_isAfterSpouseSocialSecurityAge()) {
+      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.spouseSocialSecurityAge]?.toDouble() ?? 0 / 2;
+      next?.add(PlanColumn.income, "Spouse Social Security", _monthlyToAnnual(benefit));
+    }
+  }
 
   void setExpenses() {
     if (_isAfterRetirementAge()) {
@@ -64,28 +90,28 @@ class PlanCalculator {
   void growBrokerage() {
     final growthRate = parameters.brokerageGrowthRate;
     final total = last.total(PlanColumn.brokerage);
-    final growthAmount = _prorate(_growBy(total, growthRate));
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
     next?.add(PlanColumn.brokerage, "Growth", growthAmount);
   }
 
   void growFourOhOneK() {
     final growthRate = parameters.fourOhOneKGrowthRate;
     final total = last.total(PlanColumn.fourOhOneK);
-    final growthAmount = _prorate(_growBy(total, growthRate));
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
     next?.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
   }
 
   void growTraditionalIra() {
     final growthRate = parameters.traditionalIraGrowthRate;
     final total = last.total(PlanColumn.traditionalIra);
-    final growthAmount = _prorate(_growBy(total, growthRate));
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
     next?.add(PlanColumn.traditionalIra, "Growth", growthAmount);
   }
 
   void growRothIra() {
     final growthRate = parameters.rothIraGrowthRate;
     final total = last.total(PlanColumn.rothIra);
-    final growthAmount = _prorate(_growBy(total, growthRate));
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
     next?.add(PlanColumn.rothIra, "Growth", growthAmount);
   }
 
@@ -93,7 +119,7 @@ class PlanCalculator {
     final growthRate = parameters.hsaGrowthRate;
     final investmentThreshold = parameters.hsaInvestmentThreshold;
     final total = last.total(PlanColumn.hsa) - investmentThreshold;
-    final growthAmount = _prorate(_growBy(total, growthRate));
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
     next?.add(PlanColumn.hsa, "Growth", growthAmount);
   }
 
@@ -102,6 +128,7 @@ class PlanCalculator {
     this.age = age;
     next = PlanTotals.fromPlanTotals(last);
 
+    setIncome();
     setExpenses();
 
     growBrokerage();

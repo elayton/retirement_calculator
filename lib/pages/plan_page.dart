@@ -39,10 +39,10 @@ class _PlanPageState extends State<PlanPage> {
     final rows = <(int, PlanTotals)>[];
     var age = DateTime.now().year - PlanConstants.birthday.year;
 
-    do {
-      rows.add((age, totals));
+    while (age++ < PlanConstants.longevityAge) {
       totals = calculator.calculateNext(age);
-    } while (age++ < PlanConstants.longevityAge);
+      rows.add((age, totals));
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -67,10 +67,10 @@ class _PlanPageState extends State<PlanPage> {
     );
   }
 
-  /// The background tint for one row. Working years are red and retired years
-  /// green, except for the stretch between retirement age and penalty-free IRA
-  /// withdrawals, which is flagged blue when retirement comes first and orange
-  /// when the IRA withdrawal age comes first.
+  /// The background tint for one row. Working years are orange and retired
+  /// years green, except for the stretch between retirement age and
+  /// penalty-free IRA withdrawals, which is flagged blue when retirement comes
+  /// first and red when the IRA withdrawal age comes first.
   Color _rowTint(int age, PlanParameters parameters) {
     final retirementAge = parameters.retirementAge;
     final iraWithdrawalAge = PlanConstants.iraWithdrawalAge;
@@ -80,10 +80,10 @@ class _PlanPageState extends State<PlanPage> {
       return Colors.blue.withValues(alpha: 0.12);
     }
     if (retirementAge > iraWithdrawalAge && !afterRetirement && age > iraWithdrawalAge) {
-      return Colors.orange.withValues(alpha: 0.12);
+      return Colors.red.withValues(alpha: 0.12);
     }
 
-    return (afterRetirement ? Colors.green : Colors.red).withValues(alpha: 0.12);
+    return (afterRetirement ? Colors.green : Colors.orange).withValues(alpha: 0.12);
   }
 
   /// The per-age projection table.
