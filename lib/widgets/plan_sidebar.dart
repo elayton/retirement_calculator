@@ -77,21 +77,21 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         IntegerField(
-          label: 'Social Security Age',
-          value: parameters.socialSecurityAge,
-          help: 'Age at which Social Security income begins.',
+          label: 'Primary Social Security Age',
+          value: parameters.primarySocialSecurityAge,
+          help: 'Age at which primary Social Security income begins.',
           onChanged: (value) {
-            parameters.socialSecurityAge = value;
+            parameters.primarySocialSecurityAge = value;
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         IntegerField(
-          label: 'Spouse Social Security Age',
-          value: parameters.spouseSocialSecurityAge,
-          help: 'Age at which the spouse Social Security income begins.',
+          label: 'Secondary Social Security Age',
+          value: parameters.secondarySocialSecurityAge,
+          help: 'Age at which the secondary Social Security income begins.',
           onChanged: (value) {
-            parameters.spouseSocialSecurityAge = value;
+            parameters.secondarySocialSecurityAge = value;
             onChanged();
           },
         ),

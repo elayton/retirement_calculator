@@ -1,7 +1,7 @@
 class PlanParameters {
   int retirementAge = 60;
-  int socialSecurityAge = 70;
-  int spouseSocialSecurityAge = 67;
+  int primarySocialSecurityAge = 70;
+  int secondarySocialSecurityAge = 67;
   double budget = 7500; // Per month.
   double medicalInsurance = 2871; // Per month.
   double premiumTaxCredits = 2224; // Per month.
@@ -9,7 +9,7 @@ class PlanParameters {
   double inflationRate = 0;
   double baseSalary = 170000;
   double employee401kContributionRate = 6;
-  double employer401kContributionRate = 6;
+  double employer401kContributionRate = 3;
   double bonusRate = 10;
   double brokerageGrowthRate = 5;
   double fourOhOneKGrowthRate = 8;

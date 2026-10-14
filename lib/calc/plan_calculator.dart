@@ -53,36 +53,12 @@ class PlanCalculator {
   /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
-  /// Whether Social Security has started.
-  bool _isAfterSocialSecurityAge() => age! > parameters.socialSecurityAge;
+  /// Whether primary Social Security has started.
+  bool _isAfterPrimarySocialSecurityAge() => age! > parameters.primarySocialSecurityAge;
 
-  /// Whether spouse's Social Security has started, which may fall earlier
+  /// Whether secondary Social Security has started, which may fall earlier
   /// or later.
-  bool _isAfterSpouseSocialSecurityAge() => age! > parameters.spouseSocialSecurityAge;
-
-  /// Money coming in over the year: salary and bonus while working, then
-  /// Social Security from the ages it starts at. Social Security keeps running
-  /// after retirement, and the two can overlap with the working years and with
-  /// each other, so each source is added on its own terms.
-  void _setIncome() {
-    if (!_isAfterRetirementAge()) {
-      final salary = parameters.baseSalary;
-      next!.add(PlanColumn.income, "Salary", salary);
-
-      final bonus = _percentageOf(salary, parameters.bonusRate);
-      next!.add(PlanColumn.income, "Bonus", bonus);
-    }
-
-    if (_isAfterSocialSecurityAge()) {
-      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.socialSecurityAge]?.toDouble() ?? 0;
-      next!.add(PlanColumn.income, "Social Security", _monthlyToAnnual(benefit));
-    }
-
-    if (_isAfterSpouseSocialSecurityAge()) {
-      final benefit = (PlanConstants.socialSecurityBenefitByAge[parameters.spouseSocialSecurityAge]?.toDouble() ?? 0) / 2;
-      next!.add(PlanColumn.income, "Spouse Social Security", _monthlyToAnnual(benefit));
-    }
-  }
+  bool _isAfterSecondarySocialSecurityAge() => age! > parameters.secondarySocialSecurityAge;
 
   /// Money going out over the year, and only once the projection has retired:
   /// the budget, plus whichever health insurance applies, less any premium tax
@@ -107,13 +83,91 @@ class PlanCalculator {
     next!.unpaidExpenses = next!.totalOf(PlanColumn.expenses);
   }
 
+  /// Money coming in over the year: salary and bonus while working, then
+  /// primary and secondary Social Security from the ages it starts.
+  void _setIncome() {
+    if (!_isAfterRetirementAge()) {
+      final salary = parameters.baseSalary;
+      next!.add(PlanColumn.income, "Salary", salary);
+
+      final bonus = _percentageOf(salary, parameters.bonusRate);
+      next!.add(PlanColumn.income, "Bonus", bonus);
+    }
+
+    if (_isAfterPrimarySocialSecurityAge()) {
+      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.primarySocialSecurityAge] ?? 0;
+      next!.add(PlanColumn.income, "Primary Social Security", _monthlyToAnnual(benefit));
+    }
+
+    if (_isAfterSecondarySocialSecurityAge()) {
+      final benefit = (PlanConstants.socialSecurityBenefitByAge[parameters.secondarySocialSecurityAge] ?? 0) / 2;
+      next!.add(PlanColumn.income, "Secondary Social Security", _monthlyToAnnual(benefit));
+    }
+
+    next!.unpaidExpenses -= next!.totalOf(PlanColumn.income);
+  }
+
+  void _contributeTo401k() {
+    if (!_isAfterRetirementAge()) {
+      final salary = parameters.baseSalary + _percentageOf(parameters.baseSalary, parameters.bonusRate);
+
+      final employeeContribution = _percentageOf(salary, parameters.employee401kContributionRate);
+      next!.add(PlanColumn.fourOhOneK, "Employee 401(k) Contribution", employeeContribution);
+
+      final employerContribution = _percentageOf(salary, parameters.employer401kContributionRate);
+      next!.add(PlanColumn.fourOhOneK, "Employer 401(k) Contribution", employerContribution);
+    }
+  }
+
+  void _contributeToHsa() {
+    if (!_isAfterRetirementAge()) {
+      // Not deducted from salary because we budget for it.
+
+      final hsaContribution = PlanConstants.hsaContributionLimit;
+      next!.add(PlanColumn.hsa, "HSA Contribution", hsaContribution);
+    }
+  }
+
   /// Withdraw from the brokerage account to pay unpaid expenses.
   void _withdrawFromBrokerage() {
     if (_isAfterRetirementAge()) {
       if (next!.unpaidExpenses > 0) {
-        next!.brokerageWithdrawal = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
-        next!.sub(PlanColumn.brokerage, "Pay Expenses", next!.brokerageWithdrawal);
-        next!.unpaidExpenses -= next!.brokerageWithdrawal;
+        next!.brokerageWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
+        next!.sub(PlanColumn.brokerage, "Pay Expenses", next!.brokerageWithdrawals);
+        next!.unpaidExpenses -= next!.brokerageWithdrawals;
+      }
+    }
+  }
+
+  /// Withdraw from the 401(k) account to pay unpaid expenses.
+  void _withdrawFromFourOhOneK() {
+    if (_isAfterRetirementAge()) {
+      if (next!.unpaidExpenses > 0) {
+        next!.fourOhOneKWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.fourOhOneK));
+        next!.sub(PlanColumn.fourOhOneK, "Pay Expenses", next!.fourOhOneKWithdrawals);
+        next!.unpaidExpenses -= next!.fourOhOneKWithdrawals;
+      }
+    }
+  }
+
+  /// Withdraw from the traditional IRA account to pay unpaid expenses.
+  void _withdrawFromTraditionalIra() {
+    if (_isAfterRetirementAge()) {
+      if (next!.unpaidExpenses > 0) {
+        next!.traditionalIraWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
+        next!.sub(PlanColumn.traditionalIra, "Pay Expenses", next!.traditionalIraWithdrawals);
+        next!.unpaidExpenses -= next!.traditionalIraWithdrawals;
+      }
+    }
+  }
+
+  /// Withdraw from the traditional IRA account to pay unpaid expenses.
+  void _withdrawFromRothIra() {
+    if (_isAfterRetirementAge()) {
+      if (next!.unpaidExpenses > 0) {
+        next!.rothIraWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
+        next!.sub(PlanColumn.rothIra, "Pay Expenses", next!.rothIraWithdrawals);
+        next!.unpaidExpenses -= next!.rothIraWithdrawals;
       }
     }
   }
@@ -121,7 +175,7 @@ class PlanCalculator {
   /// Add a year of growth to the brokerage balance.
   void _growBrokerage() {
     final growthRate = parameters.brokerageGrowthRate;
-    final total = last.totalOf(PlanColumn.brokerage);
+    final total = next!.totalOf(PlanColumn.brokerage);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     next!.add(PlanColumn.brokerage, "Growth", growthAmount);
   }
@@ -129,7 +183,7 @@ class PlanCalculator {
   /// Add a year of growth to the 401(k) balance.
   void _growFourOhOneK() {
     final growthRate = parameters.fourOhOneKGrowthRate;
-    final total = last.totalOf(PlanColumn.fourOhOneK);
+    final total = next!.totalOf(PlanColumn.fourOhOneK);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
   }
@@ -137,7 +191,7 @@ class PlanCalculator {
   /// Add a year of growth to the pre-tax traditional IRA balance.
   void _growTraditionalIra() {
     final growthRate = parameters.traditionalIraGrowthRate;
-    final total = last.totalOf(PlanColumn.traditionalIra);
+    final total = next!.totalOf(PlanColumn.traditionalIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
   }
@@ -145,7 +199,7 @@ class PlanCalculator {
   /// Add a year of growth to the after-tax Roth IRA balance.
   void _growRothIra() {
     final growthRate = parameters.rothIraGrowthRate;
-    final total = last.totalOf(PlanColumn.rothIra);
+    final total = next!.totalOf(PlanColumn.rothIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     next!.add(PlanColumn.rothIra, "Growth", growthAmount);
   }
@@ -154,7 +208,7 @@ class PlanCalculator {
   void _growHsa() {
     final growthRate = parameters.hsaGrowthRate;
     final investmentThreshold = parameters.hsaInvestmentThreshold;
-    final total = last.totalOf(PlanColumn.hsa) - investmentThreshold;
+    final total = next!.totalOf(PlanColumn.hsa) - investmentThreshold;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     next!.add(PlanColumn.hsa, "Growth", growthAmount);
   }
@@ -164,10 +218,16 @@ class PlanCalculator {
     this.age = age;
     next = PlanTotals.fromPlanTotals(last);
 
-    _setIncome();
     _setExpenses();
+    _setIncome();
 
+    _contributeTo401k();
+    _contributeToHsa();
+    
     _withdrawFromBrokerage();
+    _withdrawFromFourOhOneK();
+    _withdrawFromTraditionalIra();
+    _withdrawFromRothIra();
 
     _growBrokerage();
     _growFourOhOneK();

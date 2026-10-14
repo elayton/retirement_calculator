@@ -113,8 +113,8 @@ class _PlanPageState extends State<PlanPage> {
                     PlanConstants.iraWithdrawalAge,
                     PlanConstants.medicareStartAge,
                     PlanConstants.rmdStartAge,
-                    parameters.spouseSocialSecurityAge,
-                    parameters.socialSecurityAge,
+                    parameters.secondarySocialSecurityAge,
+                    parameters.primarySocialSecurityAge,
                   }.contains(row.$1)
                   ? Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outline))
                   : null,
