@@ -15,6 +15,14 @@ Color _positiveColor(Brightness brightness) =>
 Color _negativeColor(Brightness brightness) =>
     brightness == Brightness.dark ? Colors.red.shade200 : Colors.red.shade900;
 
+/// Gap between a cell and the tooltip it opens. Flutter's own default is 24,
+/// which is close enough to the cell that moving the cursor off it to read the
+/// breakdown means crossing the gap and hoping to land inside the panel: the
+/// pointer has to reach the tooltip before it leaves the cell, or the tooltip
+/// goes with it. The panel holds the pointer once it is over it, so a wider gap
+/// costs nothing and buys the crossing.
+const _tooltipGap = 36.0;
+
 /// One currency cell of the plan table, with a tooltip that accounts for the
 /// value: the balance it started from, every adjustment applied since, and the
 /// total they add up to.
@@ -26,6 +34,7 @@ class BalanceTooltip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
+      verticalOffset: _tooltipGap,
       // The breakdown needs its own columns, so it rides along as a widget
       // inside the message rather than as styled text.
       richMessage: TextSpan(
@@ -50,9 +59,9 @@ class BalanceTooltip extends StatelessWidget {
 /// tooltip's own padding around them looks generous by comparison.
 const _lineGap = 4.0;
 
-/// Extra room above the total, on top of [_lineGap]. The total is the result
-/// the lines above it arrive at, so it is set apart from them rather than
-/// reading as one more entry in the list.
+/// Extra room above the total, on top of [_lineGap], where there are lines
+/// above it. The total is the result those lines arrive at, so it is set apart
+/// from them rather than reading as one more entry in the list.
 const _summaryGap = 6.0;
 
 /// The tooltip's contents: the starting balance, one line per adjustment, and
@@ -113,7 +122,11 @@ class _BalanceBreakdown extends StatelessWidget {
           for (final line in lines)
             Padding(padding: const EdgeInsets.only(bottom: _lineGap), child: line),
           Padding(
-            padding: const EdgeInsets.only(top: _summaryGap),
+            // Nothing to set the total apart from when it is the only line, so
+            // the gap is left off there: carried anyway it would push the lone
+            // line down inside the panel, leaving more space above it than
+            // below.
+            padding: EdgeInsets.only(top: lines.isEmpty ? 0 : _summaryGap),
             child: _line('Total', formatCurrency(balance.total), bold: true),
           ),
         ],

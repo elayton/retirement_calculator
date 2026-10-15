@@ -42,12 +42,20 @@ class PlanBalance {
 
 class PlanTotals {
   final Map<PlanColumn, PlanBalance> balances = {};
+  
+  double salary = 0;
+
+  double ordinaryIncome = 0;
+  double capitalGains = 0;
+
   double unpaidExpenses = 0;
+  double unconvertedToRoth = 0;
+
   double brokerageWithdrawals = 0;
   double fourOhOneKWithdrawals = 0;
   double traditionalIraWithdrawals = 0;
   double rothIraWithdrawals = 0;
-  
+
   PlanTotals.fromPortfolio(Portfolio portfolio) {
     for (final account in portfolio.accounts) {
       final column = account.type.planColumn;

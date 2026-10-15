@@ -202,6 +202,86 @@ void main() {
       expect((body.top - panel.top).round(), (panel.bottom - body.bottom).round());
     });
 
+    testWidgets('a total-only tooltip is padded evenly top and bottom', (tester) async {
+      // The padding is the app theme's, so the app has to be the one supplying
+      // it; the plain test app below has no tooltip theme of its own. Room for
+      // its tab strip, which overflows on the default test surface.
+      tester.view.physicalSize = const Size(1500, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const MainApp());
+      final tooltipTheme = Theme.of(tester.element(find.byType(Scaffold).first)).tooltipTheme;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(tooltipTheme: tooltipTheme),
+          home: Scaffold(body: Center(child: BalanceTooltip(balance: balanceWith(initial: 0)))),
+        ),
+      );
+      await hover(tester, find.byType(BalanceTooltip));
+
+      final panel = tester.getRect(find.byType(DecoratedBox));
+      final body = tester.getRect(find.byType(IntrinsicWidth));
+      final total = tester.getRect(
+        find.ancestor(of: find.descendant(of: find.byType(IntrinsicWidth), matching: find.text('Total')), matching: find.byType(Row)),
+      );
+
+      // Measured on the line itself rather than on the tooltip's contents: the
+      // body is the padding plus the line, so it comes out even whatever the
+      // line sits inside it, which is not what the eye reads.
+      expect((total.top - panel.top).round(), (panel.bottom - total.bottom).round());
+
+      // And the whole of it is inside the panel, where the theme's padding
+      // holds it clear of the border.
+      expect(body.top, greaterThanOrEqualTo(panel.top));
+      expect(body.bottom, lessThanOrEqualTo(panel.bottom));
+    });
+
+    testWidgets('the tooltip clears the cell far enough to move the cursor onto', (tester) async {
+      tester.view.physicalSize = const Size(1500, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const MainApp());
+      final tooltipTheme = Theme.of(tester.element(find.byType(Scaffold).first)).tooltipTheme;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(tooltipTheme: tooltipTheme),
+          home: Scaffold(body: Center(child: BalanceTooltip(balance: balanceWith(initial: 1000, adjustments: [('Budget', 250)])))),
+        ),
+      );
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(gesture.removePointer);
+      await gesture.addPointer(location: Offset.zero);
+
+      await gesture.moveTo(tester.getCenter(find.byType(BalanceTooltip)));
+      await tester.pumpAndSettle();
+      expect(find.byType(IntrinsicWidth), findsOneWidget, reason: 'the tooltip did not open on hover');
+
+      final cell = tester.getRect(find.byType(BalanceTooltip));
+      final panel = tester.getRect(find.byType(DecoratedBox));
+
+      // Clear air under the cell, so the crossing is a move rather than a jump.
+      // Flutter's own default is 24, which is near enough to skim.
+      expect(panel.top - cell.bottom, greaterThan(24));
+
+      // And the crossing lands somewhere that keeps the tooltip open. Reading
+      // the breakdown should not mean holding the pointer inside the cell,
+      // which is what closing on exit would force.
+      await gesture.moveTo(Offset(panel.center.dx, panel.top + 1));
+      await tester.pumpAndSettle();
+      expect(find.byType(IntrinsicWidth), findsOneWidget, reason: 'the tooltip closed as the cursor left the cell');
+
+      // Clear of the panel too, so the assertion above is about holding the
+      // pointer and not about the tooltip having simply stuck open.
+      await gesture.moveTo(Offset(panel.left - 200, panel.center.dy));
+      await tester.pumpAndSettle();
+      expect(find.byType(IntrinsicWidth), findsNothing, reason: 'the tooltip outlived the cursor entirely');
+    });
+
     testWidgets('a balance starting at zero leaves the initial line out', (tester) async {
       await tester.pumpWidget(app(balanceWith(initial: 0, adjustments: [('Budget', 250), ('Growth', -100)])));
       await hover(tester, find.byType(BalanceTooltip));

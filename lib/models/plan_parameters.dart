@@ -2,6 +2,8 @@ class PlanParameters {
   int retirementAge = 60;
   int primarySocialSecurityAge = 70;
   int secondarySocialSecurityAge = 67;
+  int rothIraConversionAge = 65;
+  List<int> downMarketAges = const [];
   double budget = 7500; // Per month.
   double medicalInsurance = 2871; // Per month.
   double premiumTaxCredits = 2224; // Per month.
@@ -17,10 +19,8 @@ class PlanParameters {
   double rothIraGrowthRate = 8;
   double hsaInvestmentThreshold = 2500;
   double hsaGrowthRate = 4;
-  List<int> downMarketAges = const [];
   double downMarketRate = -50;
   double brokerageContributions = 0;
   double rothIraContributions = 0;
-  int rothIraConversionAge = 60;
   double rothIraConversion = 80000;
 }

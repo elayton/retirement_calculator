@@ -53,6 +53,8 @@ class PlanCalculator {
   /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
+  bool _isAfterRothConversionAge() => age! > parameters.rothIraConversionAge;
+
   /// Whether primary Social Security has started.
   bool _isAfterPrimarySocialSecurityAge() => age! > parameters.primarySocialSecurityAge;
 
@@ -85,23 +87,31 @@ class PlanCalculator {
 
   /// Money coming in over the year: salary and bonus while working, then
   /// primary and secondary Social Security from the ages it starts.
-  void _setIncome() {
+  void _earnSalary() {
     if (!_isAfterRetirementAge()) {
       final salary = parameters.baseSalary;
+      next!.salary += salary;
+      next!.ordinaryIncome += salary;
       next!.add(PlanColumn.income, "Salary", salary);
 
       final bonus = _percentageOf(salary, parameters.bonusRate);
+      next!.salary += bonus;
+      next!.ordinaryIncome += bonus;
       next!.add(PlanColumn.income, "Bonus", bonus);
     }
+  }
 
+  void _receiveSocialSecurity() {
     if (_isAfterPrimarySocialSecurityAge()) {
-      final benefit = PlanConstants.socialSecurityBenefitByAge[parameters.primarySocialSecurityAge] ?? 0;
-      next!.add(PlanColumn.income, "Primary Social Security", _monthlyToAnnual(benefit));
+      final benefit = _monthlyToAnnual(PlanConstants.socialSecurityBenefitByAge[parameters.primarySocialSecurityAge] ?? 0);
+      next!.ordinaryIncome += _percentageOf(benefit, PlanConstants.socialSecurityTaxablePercentage);
+      next!.add(PlanColumn.income, "Primary Social Security", benefit);
     }
 
     if (_isAfterSecondarySocialSecurityAge()) {
-      final benefit = (PlanConstants.socialSecurityBenefitByAge[parameters.secondarySocialSecurityAge] ?? 0) / 2;
-      next!.add(PlanColumn.income, "Secondary Social Security", _monthlyToAnnual(benefit));
+      final benefit = _monthlyToAnnual((PlanConstants.socialSecurityBenefitByAge[parameters.secondarySocialSecurityAge] ?? 0) / 2);
+      next!.ordinaryIncome += _percentageOf(benefit, PlanConstants.socialSecurityTaxablePercentage);
+      next!.add(PlanColumn.income, "Secondary Social Security", benefit);
     }
 
     next!.unpaidExpenses -= next!.totalOf(PlanColumn.income);
@@ -109,65 +119,146 @@ class PlanCalculator {
 
   void _contributeTo401k() {
     if (!_isAfterRetirementAge()) {
-      final salary = parameters.baseSalary + _percentageOf(parameters.baseSalary, parameters.bonusRate);
-
-      final employeeContribution = _percentageOf(salary, parameters.employee401kContributionRate);
+      final employeeContribution = _percentageOf(next!.salary, parameters.employee401kContributionRate);
       next!.add(PlanColumn.fourOhOneK, "Employee 401(k) Contribution", employeeContribution);
 
-      final employerContribution = _percentageOf(salary, parameters.employer401kContributionRate);
+      final employerContribution = _percentageOf(next!.salary, parameters.employer401kContributionRate);
       next!.add(PlanColumn.fourOhOneK, "Employer 401(k) Contribution", employerContribution);
     }
   }
 
   void _contributeToHsa() {
     if (!_isAfterRetirementAge()) {
-      // Not deducted from salary because we budget for it.
-
       final hsaContribution = PlanConstants.hsaContributionLimit;
       next!.add(PlanColumn.hsa, "HSA Contribution", hsaContribution);
+
+      // TODO: Add employer HSA contributions.
     }
   }
 
   /// Withdraw from the brokerage account to pay unpaid expenses.
-  void _withdrawFromBrokerage() {
+  void _payExpensesFromBrokerage() {
     if (_isAfterRetirementAge()) {
       if (next!.unpaidExpenses > 0) {
-        next!.brokerageWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
-        next!.sub(PlanColumn.brokerage, "Pay Expenses", next!.brokerageWithdrawals);
-        next!.unpaidExpenses -= next!.brokerageWithdrawals;
+        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
+        if (withdrawalAmount > 0) {
+          next!.brokerageWithdrawals += withdrawalAmount;
+
+          // Pay expenses.
+          next!.unpaidExpenses -= withdrawalAmount;
+          next!.sub(PlanColumn.brokerage, "Pay Expenses", withdrawalAmount);
+
+          // Brokerage withdrawals are taxable as capital gains.  TODO: Adjust brokerage capital gains with cost basis.
+          next!.capitalGains += withdrawalAmount;
+          next!.add(PlanColumn.income, "Withdrawal from Brokerage", withdrawalAmount);
+        }
       }
     }
   }
 
   /// Withdraw from the 401(k) account to pay unpaid expenses.
-  void _withdrawFromFourOhOneK() {
+  void _payExpensesFromFourOhOneK() {
     if (_isAfterRetirementAge()) {
       if (next!.unpaidExpenses > 0) {
-        next!.fourOhOneKWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.fourOhOneK));
-        next!.sub(PlanColumn.fourOhOneK, "Pay Expenses", next!.fourOhOneKWithdrawals);
-        next!.unpaidExpenses -= next!.fourOhOneKWithdrawals;
+        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.fourOhOneK));
+        if (withdrawalAmount > 0) {
+          next!.fourOhOneKWithdrawals += withdrawalAmount;
+
+          // Pay expenses.
+          next!.unpaidExpenses -= withdrawalAmount;
+          next!.sub(PlanColumn.fourOhOneK, "Pay Expenses", withdrawalAmount);
+
+          // 401(k) withdrawals are taxable as ordinary income.
+          next!.ordinaryIncome += withdrawalAmount;
+          next!.add(PlanColumn.income, "Withdrawal from 401(k)", withdrawalAmount);
+        }
       }
     }
   }
 
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
-  void _withdrawFromTraditionalIra() {
+  void _payExpensesFromTraditionalIra() {
     if (_isAfterRetirementAge()) {
       if (next!.unpaidExpenses > 0) {
-        next!.traditionalIraWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
-        next!.sub(PlanColumn.traditionalIra, "Pay Expenses", next!.traditionalIraWithdrawals);
-        next!.unpaidExpenses -= next!.traditionalIraWithdrawals;
+        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
+        if (withdrawalAmount > 0) {
+          next!.traditionalIraWithdrawals += withdrawalAmount;
+
+          // Pay expenses.
+          next!.sub(PlanColumn.traditionalIra, "Pay Expenses", withdrawalAmount);
+          next!.unpaidExpenses -= withdrawalAmount;
+          
+          // Traditional IRA withdrawals are taxable as ordinary income.
+          next!.ordinaryIncome += withdrawalAmount;
+          next!.add(PlanColumn.income, "Withdrawal from Traditional IRA", withdrawalAmount);
+        }
       }
     }
   }
 
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
-  void _withdrawFromRothIra() {
+  void _payExpensesFromRothIra() {
     if (_isAfterRetirementAge()) {
       if (next!.unpaidExpenses > 0) {
-        next!.rothIraWithdrawals = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
-        next!.sub(PlanColumn.rothIra, "Pay Expenses", next!.rothIraWithdrawals);
-        next!.unpaidExpenses -= next!.rothIraWithdrawals;
+        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
+        if (withdrawalAmount > 0) {
+          next!.rothIraWithdrawals += withdrawalAmount;
+
+          // Pay expenses.
+          next!.sub(PlanColumn.rothIra, "Pay Expenses", withdrawalAmount);
+          next!.unpaidExpenses -= withdrawalAmount;
+
+          // Roth IRA withdrawals are not taxable.
+          next!.ordinaryIncome += 0;
+        }
+      }
+    }
+  }
+
+  void _setRothIraConversion() {
+    if (_isAfterRetirementAge()) {
+      if (_isAfterRothConversionAge()) {
+        next!.unconvertedToRoth = parameters.rothIraConversion;
+      }
+    }
+  }
+
+  void _convertFourOhOneKToRothIra() {
+    if (_isAfterRetirementAge()) {
+      if (_isAfterRothConversionAge()) {
+        final conversionAmount = min(next!.unconvertedToRoth, next!.totalOf(PlanColumn.fourOhOneK));
+        if (conversionAmount > 0) {
+          next!.fourOhOneKWithdrawals += conversionAmount;
+          next!.sub(PlanColumn.fourOhOneK, "Convert to Roth IRA", conversionAmount);
+
+          // Convert to Roth IRA.
+          next!.add(PlanColumn.rothIra, "Convert from 401(k)", conversionAmount);
+          next!.unconvertedToRoth -= conversionAmount;
+
+          // 401(k) withdrawals for Roth conversions are taxable as ordinary income.
+          next!.ordinaryIncome += conversionAmount;
+          next!.add(PlanColumn.income, "Convert to Roth IRA from 401(k)", conversionAmount);
+        }
+      }
+    }
+  }
+
+  void _convertTraditionalIraToRothIra() {
+    if (_isAfterRetirementAge()) {
+      if (_isAfterRothConversionAge()) {
+        final conversionAmount = min(next!.unconvertedToRoth, next!.totalOf(PlanColumn.traditionalIra));
+        if (conversionAmount > 0) {
+          next!.traditionalIraWithdrawals += conversionAmount;
+          next!.sub(PlanColumn.traditionalIra, "Convert to Roth IRA", conversionAmount);
+
+          // Convert to Roth IRA.
+          next!.add(PlanColumn.rothIra, "Convert from Traditional IRA", conversionAmount);
+          next!.unconvertedToRoth -= conversionAmount;
+
+          // Traditional IRA withdrawals for Roth conversions are taxable as ordinary income.
+          next!.ordinaryIncome += conversionAmount;
+          next!.add(PlanColumn.income, "Convert to Roth IRA from Traditional IRA", conversionAmount);
+        }
       }
     }
   }
@@ -177,7 +268,9 @@ class PlanCalculator {
     final growthRate = parameters.brokerageGrowthRate;
     final total = next!.totalOf(PlanColumn.brokerage);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next!.add(PlanColumn.brokerage, "Growth", growthAmount);
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.brokerage, "Growth", growthAmount);
+    }
   }
 
   /// Add a year of growth to the 401(k) balance.
@@ -185,7 +278,9 @@ class PlanCalculator {
     final growthRate = parameters.fourOhOneKGrowthRate;
     final total = next!.totalOf(PlanColumn.fourOhOneK);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
+    }
   }
 
   /// Add a year of growth to the pre-tax traditional IRA balance.
@@ -193,7 +288,9 @@ class PlanCalculator {
     final growthRate = parameters.traditionalIraGrowthRate;
     final total = next!.totalOf(PlanColumn.traditionalIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
+    }
   }
 
   /// Add a year of growth to the after-tax Roth IRA balance.
@@ -201,7 +298,9 @@ class PlanCalculator {
     final growthRate = parameters.rothIraGrowthRate;
     final total = next!.totalOf(PlanColumn.rothIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next!.add(PlanColumn.rothIra, "Growth", growthAmount);
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.rothIra, "Growth", growthAmount);
+    }
   }
 
   /// Add a year of growth to the invested HSA balance.
@@ -210,7 +309,9 @@ class PlanCalculator {
     final investmentThreshold = parameters.hsaInvestmentThreshold;
     final total = next!.totalOf(PlanColumn.hsa) - investmentThreshold;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
-    next!.add(PlanColumn.hsa, "Growth", growthAmount);
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.hsa, "Growth", growthAmount);
+    }
   }
 
   /// Advance the account totals by one year and return the new totals.
@@ -219,16 +320,21 @@ class PlanCalculator {
     next = PlanTotals.fromPlanTotals(last);
 
     _setExpenses();
-    _setIncome();
+    _earnSalary();
+    _receiveSocialSecurity();
 
     _contributeTo401k();
     _contributeToHsa();
-    
-    _withdrawFromBrokerage();
-    _withdrawFromFourOhOneK();
-    _withdrawFromTraditionalIra();
-    _withdrawFromRothIra();
 
+    _payExpensesFromBrokerage();
+    _payExpensesFromFourOhOneK();
+    _payExpensesFromTraditionalIra();
+    _payExpensesFromRothIra();
+
+    _setRothIraConversion();
+    _convertFourOhOneKToRothIra();
+    _convertTraditionalIraToRothIra();
+    
     _growBrokerage();
     _growFourOhOneK();
     _growTraditionalIra();
