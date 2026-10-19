@@ -42,8 +42,7 @@ Future<(double age, double single)> headerHeights(WidgetTester tester, double wi
 void main() {
   testWidgets('the Age header stays on one line across window widths', (tester) async {
     // A wrapped header is taller than one beside it that fits, so a taller "Age"
-    // means it wrapped.  Checked at the default window size and below it, where
-    // a proportional column would have been squeezed into wrapping.
+    // means it wrapped.
     for (final width in [1000.0, 1200.0, 1600.0, 2200.0]) {
       final (age, single) = await headerHeights(tester, width);
 
@@ -72,8 +71,7 @@ void main() {
     final table = find.byType(Table).first;
     double widthOf(String label) => tester.getSize(find.descendant(of: table, matching: find.text(label)).first).width;
 
-    // It sizes to "Age" rather than sharing the table out, so it stays narrow
-    // even in a window wide enough to hand it far more than it needs.
+    // It sizes to "Age" rather than sharing the table out.
     expect(widthOf('Age'), lessThan(widthOf('Brokerage')));
   });
 }

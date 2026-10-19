@@ -101,7 +101,9 @@ void main() {
         MaterialApp(
           theme: ThemeData.dark(),
           home: Scaffold(
-            body: Center(child: BalanceTooltip(balance: balanceWith(initial: 0, adjustments: [('Budget', 250), ('Growth', -100)]))),
+            body: Center(
+              child: BalanceTooltip(balance: balanceWith(initial: 0, adjustments: [('Budget', 250), ('Growth', -100)])),
+            ),
           ),
         ),
       );
@@ -155,30 +157,34 @@ void main() {
       await tester.pumpWidget(app(balanceWith(initial: 1000, adjustments: [('Budget', 250), ('Growth', -100), ('Fees', 25)])));
       await hover(tester, find.byType(BalanceTooltip));
 
-      // Measured on the lines themselves rather than on their text: a text box
-      // carries leading above and below the glyphs, which would swamp the gap.
+      // Measured on the lines rather than their text: a text box carries leading
+      // above and below the glyphs, which would swamp the gap.
       final rows = <Rect>[];
       for (final line in ['Initial', 'Budget', 'Growth', 'Fees', 'Total']) {
-        rows.add(tester.getRect(find.ancestor(of: find.descendant(of: find.byType(IntrinsicWidth), matching: find.text(line)), matching: find.byType(Row))));
+        rows.add(
+          tester.getRect(
+            find.ancestor(
+              of: find.descendant(of: find.byType(IntrinsicWidth), matching: find.text(line)),
+              matching: find.byType(Row),
+            ),
+          ),
+        );
       }
 
       double gapBetween(int i) => rows[i + 1].top - rows[i].bottom;
 
-      // The entries are evenly spaced, where before they were flush and read as
-      // one block of text.
+      // The entries are evenly spaced, rather than flush as one block of text.
       final entryGaps = {gapBetween(0), gapBetween(1), gapBetween(2)};
       expect(entryGaps, hasLength(1), reason: 'the lines are unevenly spaced: $entryGaps');
       expect(entryGaps.single, greaterThan(0));
 
       // The total stands apart from the entries that add up to it.
-      expect(gapBetween(3), greaterThan(entryGaps.single),
-          reason: 'the total is not set off from the lines above it');
+      expect(gapBetween(3), greaterThan(entryGaps.single), reason: 'the total is not set off from the lines above it');
     });
 
     testWidgets('the tooltip is padded evenly top and bottom', (tester) async {
-      // The padding is the app theme's, so the app has to be the one supplying
-      // it; the plain test app below has no tooltip theme of its own. Room for
-      // its tab strip, which overflows on the default test surface.
+      // The padding is the app theme's, so the app supplies it; the test app below
+      // has none of its own. Room for its tab strip, which overflows otherwise.
       tester.view.physicalSize = const Size(1500, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -189,7 +195,11 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(tooltipTheme: tooltipTheme),
-          home: Scaffold(body: Center(child: BalanceTooltip(balance: balanceWith(initial: 1000, adjustments: [('Budget', 250)])))),
+          home: Scaffold(
+            body: Center(
+              child: BalanceTooltip(balance: balanceWith(initial: 1000, adjustments: [('Budget', 250)])),
+            ),
+          ),
         ),
       );
       await hover(tester, find.byType(BalanceTooltip));
@@ -197,15 +207,14 @@ void main() {
       final panel = tester.getRect(find.byType(DecoratedBox));
       final body = tester.getRect(find.byType(IntrinsicWidth));
 
-      // The default tooltip padding sits a pixel tighter at one end than the
-      // other, which reads as the panel being off-centre on its contents.
+      // The default padding sits a pixel tighter at one end than the other, which
+      // reads as the panel being off-centre on its contents.
       expect((body.top - panel.top).round(), (panel.bottom - body.bottom).round());
     });
 
     testWidgets('a total-only tooltip is padded evenly top and bottom', (tester) async {
-      // The padding is the app theme's, so the app has to be the one supplying
-      // it; the plain test app below has no tooltip theme of its own. Room for
-      // its tab strip, which overflows on the default test surface.
+      // The padding is the app theme's, so the app supplies it; the test app below
+      // has none of its own. Room for its tab strip, which overflows otherwise.
       tester.view.physicalSize = const Size(1500, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -216,7 +225,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(tooltipTheme: tooltipTheme),
-          home: Scaffold(body: Center(child: BalanceTooltip(balance: balanceWith(initial: 0)))),
+          home: Scaffold(
+            body: Center(child: BalanceTooltip(balance: balanceWith(initial: 0))),
+          ),
         ),
       );
       await hover(tester, find.byType(BalanceTooltip));
@@ -224,18 +235,70 @@ void main() {
       final panel = tester.getRect(find.byType(DecoratedBox));
       final body = tester.getRect(find.byType(IntrinsicWidth));
       final total = tester.getRect(
-        find.ancestor(of: find.descendant(of: find.byType(IntrinsicWidth), matching: find.text('Total')), matching: find.byType(Row)),
+        find.ancestor(
+          of: find.descendant(of: find.byType(IntrinsicWidth), matching: find.text('Total')),
+          matching: find.byType(Row),
+        ),
       );
 
-      // Measured on the line itself rather than on the tooltip's contents: the
-      // body is the padding plus the line, so it comes out even whatever the
-      // line sits inside it, which is not what the eye reads.
+      // Measured on the line rather than the contents: the body is the padding plus
+      // the line, so it comes out even whatever the line sits inside it.
       expect((total.top - panel.top).round(), (panel.bottom - total.bottom).round());
 
       // And the whole of it is inside the panel, where the theme's padding
       // holds it clear of the border.
       expect(body.top, greaterThanOrEqualTo(panel.top));
       expect(body.bottom, lessThanOrEqualTo(panel.bottom));
+    });
+
+    testWidgets('a note shows beside the adjustments without moving the total', (tester) async {
+      final balance = balanceWith(initial: 1000, adjustments: [('Federal Tax', 250)]);
+      balance.note('Ordinary income to next bracket', 40000);
+      balance.note('Top gains bracket already');
+      await tester.pumpWidget(app(balance));
+      await hover(tester, find.byType(BalanceTooltip));
+
+      final breakdown = find.byType(IntrinsicWidth);
+
+      // Both notes are listed.
+      expect(find.descendant(of: breakdown, matching: find.text('Ordinary income to next bracket')), findsOneWidget);
+      expect(find.descendant(of: breakdown, matching: find.text('Top gains bracket already')), findsOneWidget);
+
+      // The note with an amount lines it up like the adjustments...
+      expect(find.descendant(of: breakdown, matching: find.text(r'$40,000')), findsOneWidget);
+      // ...and neither note joins the total, which is the adjustments alone.
+      expect(balance.total, 1250);
+      expect(find.descendant(of: breakdown, matching: find.text(r'$1,250')), findsOneWidget);
+    });
+
+    testWidgets('the tax column tooltip lists the headroom to the next brackets', (tester) async {
+      tester.view.physicalSize = const Size(1900, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: PlanPage(portfolio: _portfolio)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // One tooltip per balance column per row, and tax is the last of them, so the
+      // first row's tax cell is the one at rowWidth.
+      final cells = find.descendant(of: find.byType(Table).first, matching: find.byType(BalanceTooltip));
+      final rowWidth = PlanColumn.values.length - 1; // less the bracket column
+
+      // The table is taller than the window, so scroll it into view first: a
+      // tooltip only opens on a hit-tested cell.
+      await tester.ensureVisible(cells.at(rowWidth));
+      await tester.pumpAndSettle();
+
+      await hover(tester, cells.at(rowWidth));
+
+      // The tax column opens a breakdown like any other balance column.
+      final breakdown = find.byType(IntrinsicWidth);
+      expect(breakdown, findsOneWidget, reason: 'the tooltip did not open on hover');
+      expect(find.descendant(of: breakdown, matching: find.text('Total')), findsOneWidget);
     });
 
     testWidgets('the tooltip clears the cell far enough to move the cursor onto', (tester) async {
@@ -249,7 +312,11 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(tooltipTheme: tooltipTheme),
-          home: Scaffold(body: Center(child: BalanceTooltip(balance: balanceWith(initial: 1000, adjustments: [('Budget', 250)])))),
+          home: Scaffold(
+            body: Center(
+              child: BalanceTooltip(balance: balanceWith(initial: 1000, adjustments: [('Budget', 250)])),
+            ),
+          ),
         ),
       );
 
@@ -265,18 +332,17 @@ void main() {
       final panel = tester.getRect(find.byType(DecoratedBox));
 
       // Clear air under the cell, so the crossing is a move rather than a jump.
-      // Flutter's own default is 24, which is near enough to skim.
+      // Flutter's own default of 24 is near enough to skim.
       expect(panel.top - cell.bottom, greaterThan(24));
 
-      // And the crossing lands somewhere that keeps the tooltip open. Reading
-      // the breakdown should not mean holding the pointer inside the cell,
-      // which is what closing on exit would force.
+      // And the crossing lands somewhere that keeps the tooltip open: reading
+      // the breakdown should not mean holding the pointer inside the cell.
       await gesture.moveTo(Offset(panel.center.dx, panel.top + 1));
       await tester.pumpAndSettle();
       expect(find.byType(IntrinsicWidth), findsOneWidget, reason: 'the tooltip closed as the cursor left the cell');
 
-      // Clear of the panel too, so the assertion above is about holding the
-      // pointer and not about the tooltip having simply stuck open.
+      // Clear of the panel too, so the assertion above is about holding the pointer
+      // rather than the tooltip having simply stuck open.
       await gesture.moveTo(Offset(panel.left - 200, panel.center.dy));
       await tester.pumpAndSettle();
       expect(find.byType(IntrinsicWidth), findsNothing, reason: 'the tooltip outlived the cursor entirely');
@@ -290,8 +356,7 @@ void main() {
       // Nothing was ever there to account for, so the line is dropped.
       expect(find.descendant(of: breakdown, matching: find.text('Initial')), findsNothing);
       expect(find.descendant(of: breakdown, matching: find.text(r'$0')), findsNothing);
-      // The rest of the breakdown is untouched: the tooltip still starts at the
-      // first real amount rather than at nothing.
+      // The rest of the breakdown is untouched.
       expect(find.descendant(of: breakdown, matching: find.text('Budget')), findsOneWidget);
       expect(find.descendant(of: breakdown, matching: find.text('Growth')), findsOneWidget);
       expect(find.descendant(of: breakdown, matching: find.text('Total')), findsOneWidget);
@@ -342,8 +407,8 @@ void main() {
       final cell = tester.getRect(find.byType(BalanceTooltip));
       expect(cell.width, closeTo(300, 0.01), reason: 'the hover target shrank to the width of the digits');
 
-      // A pointer anywhere across the cell opens the tooltip, including at the
-      // left edge, well clear of the right-aligned amount.
+      // A pointer anywhere across the cell opens the tooltip, including well clear
+      // of the right-aligned amount.
       for (final dx in [4.0, cell.width / 2, cell.width - 4]) {
         final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
         await gesture.addPointer(location: Offset.zero);
@@ -355,8 +420,7 @@ void main() {
     });
 
     testWidgets('the plan table hovers from the left edge of a cell', (tester) async {
-      // Wide enough that the balance columns keep a comfortable width now the
-      // table carries the two tax columns as well.
+      // Wide enough that the balance columns keep a comfortable width.
       tester.view.physicalSize = const Size(1900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);

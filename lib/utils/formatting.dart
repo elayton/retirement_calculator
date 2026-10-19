@@ -5,8 +5,7 @@ final _appCurrency = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
 /// Currency format used across the app, rounded to the nearest dollar (e.g. "$1,235").
 String formatCurrency(num value) => _appCurrency.format(value);
 
-/// Percent format used for tax bracket rates, which are always whole numbers
-/// (e.g. "22%").
+/// Percent format for tax bracket rates (e.g. "22%").
 String formatPercent(num value) => '${value.toStringAsFixed(0)}%';
 
 final _dateFormatter = DateFormat('yyyy-MM-dd');

@@ -33,9 +33,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Read the header left to right, and compare against the whole sequence,
-    // so a column landing in the wrong place fails here rather than passing on
-    // a pair of neighbouring labels.
+    // The whole header sequence is compared, so a column landing in the wrong
+    // place fails here rather than passing on a pair of neighbouring labels.
     final labels = ['Age', for (final column in PlanColumn.values) column.label];
     // Scoped to the table, since the sidebar labels some of the same columns.
     final table = find.byType(Table).first;
@@ -44,11 +43,11 @@ void main() {
 
     expect(actual, labels);
 
-    // The two new columns sit at the end, in the order the plan reads in.
+    // The two tax columns sit at the end, in the order the plan reads in.
     expect(labels.sublist(labels.length - 2), ['Tax Bracket', 'Tax']);
   });
 
-  testWidgets('the tax columns show a rate and an amount rather than a breakdown', (tester) async {
+  testWidgets('the bracket column shows a rate and the tax column an amount', (tester) async {
     tester.view.physicalSize = const Size(2600, 700);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -64,10 +63,11 @@ void main() {
     expect(find.textContaining(RegExp(r'^\d+%$')), findsWidgets);
     expect(find.textContaining(RegExp(r'^\$[\d,]+$')), findsWidgets);
 
-    // Neither is a running balance, so neither opens a breakdown on hover:
-    // one tooltip per balance column per row, and none for the tax columns.
+    // The tax column is a balance like the rest, holding the tax as its total and
+    // the headroom as notes. Only the bracket column is a bare figure: one
+    // tooltip per column but that one, per row.
     final tooltips = tester.widgetList<BalanceTooltip>(find.byType(BalanceTooltip)).length;
     final rows = tester.widgetList<Table>(find.byType(Table)).first.children.length - 1; // less the header
-    expect(tooltips, rows * (PlanColumn.values.length - 2));
+    expect(tooltips, rows * (PlanColumn.values.length - 1));
   });
 }

@@ -68,10 +68,9 @@ class _PlanPageState extends State<PlanPage> {
     );
   }
 
-  /// The background tint for one row. Working years are orange and retired
-  /// years green, except for the stretch between retirement age and
-  /// penalty-free IRA withdrawals, which is flagged blue when retirement comes
-  /// first and red when the IRA withdrawal age comes first.
+  /// Row tint: working years orange, retired years green, except for the
+  /// stretch between retirement and penalty-free IRA withdrawals, which is blue
+  /// when retirement comes first and red when the IRA age does.
   Color _rowTint(int age, PlanParameters parameters) {
     final retirementAge = parameters.retirementAge;
     final iraWithdrawalAge = PlanConstants.iraWithdrawalAge;
@@ -87,12 +86,11 @@ class _PlanPageState extends State<PlanPage> {
     return (afterRetirement ? Colors.green : Colors.orange).withValues(alpha: 0.12);
   }
 
-  /// One cell of the projection table.  The account columns carry a running
-  /// balance and open a breakdown on hover; the tax columns hold a single
-  /// figure for the year, with no running total to account for.
+  /// One cell of the projection table. Every column but the bracket holds a
+  /// balance and so opens a breakdown on hover.
   Widget _cell(PlanColumn column, PlanTotals totals) => switch (column) {
     PlanColumn.taxBracket => rightAlign(Text(formatPercent(totals.taxBracket))),
-    PlanColumn.tax => rightAlign(Text(formatCurrency(totals.tax))),
+    PlanColumn.tax => BalanceTooltip(balance: totals.balanceOf(column)),
     _ => BalanceTooltip(balance: totals.balanceOf(column)),
   };
 
@@ -101,9 +99,7 @@ class _PlanPageState extends State<PlanPage> {
     return Table(
       border: TableBorder(verticalInside: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
       // The age column is sized to its own contents rather than a share of the
-      // table, so the header keeps to one line at any width instead of wrapping
-      // the moment the window narrows.  The currency columns still divide what
-      // is left between them.
+      // table, so the header keeps to one line at any width.
       columnWidths: {0: const IntrinsicColumnWidth(), for (var i = 1; i <= columns.length; i++) i: const FlexColumnWidth()},
       children: [
         TableRow(

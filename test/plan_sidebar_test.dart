@@ -24,8 +24,7 @@ Widget _app() => MaterialApp(
 );
 
 /// Global y of the alphabetic baseline below [element], or null when it has no
-/// baseline. Reading one outside a layout pass needs the intrinsics flag, which
-/// is only available in debug builds.
+/// baseline. Reading one needs the intrinsics flag, available in debug only.
 double? baselineY(Element element) {
   final box = element.findRenderObject() as RenderBox;
   try {
@@ -37,7 +36,7 @@ double? baselineY(Element element) {
 }
 
 /// The first Row above a value box is the row every field shares, so its rect is
-/// the whole label-plus-box line for that parameter.
+/// the whole label-plus-box line.
 Rect _rowFor(Element element) {
   var current = (element.findRenderObject() as RenderObject).parent;
   while (current != null && current is! RenderBox) {
@@ -47,8 +46,8 @@ Rect _rowFor(Element element) {
   return row.localToGlobal(Offset.zero) & row.size;
 }
 
-/// Every field's row: the editable boxes plus the fixed ages, which are the
-/// only plain integers the sidebar renders.
+/// Every field's row: the editable boxes plus the fixed ages, the only plain
+/// integers the sidebar renders.
 List<Rect> _fieldRows(WidgetTester tester) {
   final rows = <Rect>[];
   for (final element in find.byType(TextField).evaluate()) {

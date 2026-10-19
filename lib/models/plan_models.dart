@@ -10,7 +10,7 @@ enum PlanColumn {
   rothIra('Roth IRA'),
   hsa('HSA'),
   // Unlike the others, the tax columns hold a figure for the year rather than a
-  // running balance, so they read from PlanTotals instead of from [balances].
+  // running balance.
   taxBracket('Tax Bracket'),
   tax('Tax');
 
@@ -34,6 +34,7 @@ extension PortfolioAccountTypePlanColumn on PortfolioAccountType {
 class PlanBalance {
   final double initial;
   final List<(String, double)> adjustments = [];
+  final List<(String, double?)> notes = [];
 
   PlanBalance({this.initial = 0});
 
@@ -41,6 +42,12 @@ class PlanBalance {
 
   void add(String description, double amount) {
     adjustments.add((description, amount));
+  }
+
+  /// Records a line for the breakdown that is context rather than a movement, so
+  /// it shows in the tooltip without joining the [total].
+  void note(String description, [double? amount]) {
+    notes.add((description, amount));
   }
 }
 
@@ -93,5 +100,10 @@ class PlanTotals {
 
   void sub(PlanColumn column, String description, double amount) {
     balances.putIfAbsent(column, () => PlanBalance()).add(description, -amount);
+  }
+
+  /// A [PlanBalance.note] against [column], leaving its total alone.
+  void note(PlanColumn column, String description, [double? amount]) {
+    balances.putIfAbsent(column, () => PlanBalance()).note(description, amount);
   }
 }

@@ -4,8 +4,7 @@ import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
 import 'plan_widgets.dart';
 
-/// The floor for every rate field. A rate may be negative, down to a total
-/// wipeout, but never below that.
+/// Floor for every rate field: a rate may be negative, down to a total wipeout.
 const _minRate = -100.0;
 
 /// Below this page width the sidebar sits above the table instead of beside it.
@@ -21,8 +20,8 @@ const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth',
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
 ///
-/// Parameters are edited in place on [parameters]; [onChanged] is called after
-/// each edit so the page can rebuild the projection table from the new values.
+/// Parameters are edited in place on [parameters]; [onChanged] fires after each
+/// edit so the page can rebuild the table.
 class PlanSidebar extends StatelessWidget {
   final PlanParameters parameters;
   final VoidCallback onChanged;
@@ -37,8 +36,7 @@ class PlanSidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // One accordion per section, stacked vertically; the ones without
-          // controls yet collapse to a placeholder body.
+          // One accordion per section; the ones without controls yet show a placeholder.
           for (final (i, title) in planSidebarSections.indexed) ...[
             if (i > 0) const SizedBox(height: 4),
             _SidebarSection(title: title, children: _sectionFields(title, context)),
@@ -48,8 +46,7 @@ class PlanSidebar extends StatelessWidget {
     );
   }
 
-  /// The controls belonging to [title], or null for a section whose parameters
-  /// have no fields yet.
+  /// The controls belonging to [title], or null for a section with no fields yet.
   List<Widget>? _sectionFields(String title, BuildContext context) {
     return switch (title) {
       'Timeline' => [_timelineFields(context)],
@@ -351,7 +348,7 @@ class _SidebarSection extends StatelessWidget {
           side: BorderSide(color: colorScheme.outlineVariant),
         ),
         child: ExpansionTile(
-          // Collapsed by default; the trailing arrow opens and closes the section.
+          // Collapsed by default.
           shape: const Border(),
           collapsedShape: const Border(),
           tilePadding: const EdgeInsets.symmetric(horizontal: 12),

@@ -1,10 +1,9 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
-
 import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
+import 'tax_calculator.dart';
 
 /// Calculate successive rows of projected account totals by age.
 class PlanCalculator {
@@ -18,19 +17,17 @@ class PlanCalculator {
   /// Number of iteration steps completed so far.
   int _iteration = 0;
 
-  /// Begin a projection from [totals], copying them into the shape the
-  /// per-year steps below expect to read and add to.
+  /// Begin a projection from [totals], copied into the shape the per-year steps
+  /// read and add to.
   PlanCalculator({required this.portfolioDate, required this.parameters, required PlanTotals totals}) {
     last = PlanTotals.fromPlanTotals(totals);
   }
 
-  /// [rate] percent of [amount]: a growth rate applied to a balance, or a
-  /// bonus rate applied to a salary.
+  /// [rate] percent of [amount].
   double _percentageOf(double amount, double rate) => amount * rate / 100;
 
   /// Scale [amount] to the share of the export year still to come, so a
-  /// portfolio exported in June does not project a whole year of income or
-  /// growth at once. Every year after the first runs at full size.
+  /// portfolio exported in June does not project a whole year at once.
   double _prorate(double amount) {
     if (_iteration > 0) return amount;
 
@@ -44,12 +41,11 @@ class PlanCalculator {
     return amount * daysLeftInYear / 365;
   }
 
-  /// [monthly] as an annual figure. The parameters are entered per month, while
-  /// the projection steps a year at a time.
+  /// [monthly] as an annual figure.
   double _monthlyToAnnual(double monthly) => monthly * 12;
 
-  /// Whether the projection has passed retirement. Strictly after, so the year
-  /// that reaches the retirement age still counts as working.
+  /// Strictly after the retirement age, so the year that reaches it still
+  /// counts as working.
   bool _isAfterRetirementAge() => age! > parameters.retirementAge;
 
   /// Whether Medicare has taken over from private health insurance.
@@ -60,13 +56,11 @@ class PlanCalculator {
   /// Whether primary Social Security has started.
   bool _isAfterPrimarySocialSecurityAge() => age! > parameters.primarySocialSecurityAge;
 
-  /// Whether secondary Social Security has started, which may fall earlier
-  /// or later.
+  /// Whether secondary Social Security has started.
   bool _isAfterSecondarySocialSecurityAge() => age! > parameters.secondarySocialSecurityAge;
 
-  /// Money going out over the year, and only once the projection has retired:
-  /// the budget, plus whichever health insurance applies, less any premium tax
-  /// credits offsetting the years before Medicare takes over.
+  /// Money going out over the year, and only once retired: the budget plus
+  /// whichever health insurance applies, less any premium tax credits.
   void _setExpenses() {
     if (_isAfterRetirementAge()) {
       final budget = _monthlyToAnnual(parameters.budget);
@@ -87,8 +81,7 @@ class PlanCalculator {
     next!.unpaidExpenses = next!.totalOf(PlanColumn.expenses);
   }
 
-  /// Money coming in over the year: salary and bonus while working, then
-  /// primary and secondary Social Security from the ages it starts.
+  /// Salary and bonus while working.
   void _earnSalary() {
     if (!_isAfterRetirementAge()) {
       final salary = parameters.baseSalary;
@@ -316,81 +309,8 @@ class PlanCalculator {
     }
   }
 
-  /// Federal income tax owed on this year's income.
-  ///
-  /// The U.S. model is progressive, so each marginal rate applies only to the
-  /// slice of taxable income inside its own bracket rather than to the income
-  /// as a whole.  [PlanConstants.ordinaryIncomeTaxBrackets] gives each bracket as
-  /// an upper bound on taxable income (a null bound is the uncapped top
-  /// bracket), so the slice for a bracket is the income above the previous bound
-  /// and up to this one.  [PlanConstants.capitalGainsTaxBrackets] has the same
-  /// shape.
-  ///
-  /// Income stacks in three layers.  The standard deduction shelters the
-  /// bottom, so it comes off ordinary income first and then goes on sheltering
-  /// gains once ordinary income runs out.  Ordinary income then fills upward
-  /// through the ordinary brackets, and the gains occupy whatever room is left
-  /// over, taxed by position in the gains brackets.  A gain landing at a stack
-  /// position under $98,900 is therefore taxed at 0%, even though the same gain
-  /// earned by someone with high wages would be taxed at 15%.
-  ///
-  /// Records both the tax owed and, in [PlanTotals.taxBracket], the highest
-  /// marginal rate any income reached.  That rate is the topmost of the two
-  /// walks rather than the ordinary one alone, so a year whose gains land in a
-  /// higher band than the wages do reports the gains band.
-  void _calculateTax() {
-    // The deduction comes off the bottom of the stack, so it shelters ordinary
-    // income first and then continues into the gains.
-    final ordinaryTaxable = max(0.0, next!.ordinaryIncome - PlanConstants.standardDeduction);
-    final gainsTaxable = max(0.0, next!.ordinaryIncome + next!.capitalGains - PlanConstants.standardDeduction) - ordinaryTaxable;
-
-    var tax = 0.0;
-    var lowerBound = 0.0;
-    var topRate = 0.0;
-
-    /* Ordinary income. */
-
-    for (final (upperBound, rate) in PlanConstants.ordinaryIncomeTaxBrackets) {
-      // Income has run out before this bracket starts.
-      if (ordinaryTaxable <= lowerBound) break;
-
-      final upper = upperBound ?? ordinaryTaxable;
-      tax += _percentageOf(min(ordinaryTaxable, upper) - lowerBound, rate);
-      topRate = max(topRate, rate);
-
-      // The uncapped top bracket closes the walk.
-      if (upperBound == null) break;
-
-      lowerBound = upperBound;
-    }
-
-    /* Capital gains, starting where ordinary income left off. */
-
-    final stackTop = ordinaryTaxable + gainsTaxable;
-    lowerBound = ordinaryTaxable;
-
-    for (final (upperBound, rate) in PlanConstants.capitalGainsTaxBrackets) {
-      // Gains have run out before this bracket starts.
-      if (stackTop <= lowerBound) break;
-
-      final upper = upperBound ?? stackTop;
-
-      // Ordinary income may already have reached past this bracket, in which
-      // case none of the gains are taxed here.  The bound still has to hold
-      // steady, or the next bracket would tax room the gains never reached.
-      if (upper > lowerBound) {
-        tax += _percentageOf(min(stackTop, upper) - lowerBound, rate);
-        topRate = max(topRate, rate);
-        lowerBound = upper;
-      }
-
-      // The uncapped top bracket closes the walk.
-      if (upperBound == null) break;
-    }
-
-    next!.tax = tax;
-    next!.taxBracket = topRate;
-  }
+  /// Record the tax owed on this year's income. See [TaxCalculator].
+  void _calculateTax() => TaxCalculator.record(next!, next!.ordinaryIncome, next!.capitalGains);
 
   /// Advance the account totals by one year and return the new totals.
   PlanTotals calculateNext(int age) {

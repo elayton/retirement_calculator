@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Width of the value box, shared by the editable and fixed fields so the
-/// numbers line up down the section. Wide enough for a value and its unit,
-/// such as "$7,500/mo".
+/// numbers line up down the section.
 const _valueBoxWidth = 100.0;
 
 /// Height of the value box, likewise shared.
@@ -12,9 +11,8 @@ const _valueBoxHeight = 36.0;
 /// Gap between a label and its value box.
 const _labelGap = 8.0;
 
-/// Width of the stepper column beside the value box, which holds one arrow
-/// across. A field with no steppers reserves the same width of blank, so
-/// every box in a section lines up.
+/// Width of the stepper column beside the value box. A field with no steppers
+/// reserves the same width of blank, so every box in a section lines up.
 const _stepperWidth = 24.0;
 
 /// Height of a single stepper arrow; two of them stack into the column.
@@ -24,21 +22,18 @@ const _stepperHeight = 16.0;
 const _stepperGap = 4.0;
 
 /// The row shared by every field below: a label that soaks up the slack, the
-/// value box, then the stepper column or an equally wide blank. Keeping the
-/// trailing chrome in one place is what lines the boxes up.
+/// value box, then the stepper column or an equally wide blank.
 Widget _fieldRow(String label, Widget box, {Widget? stepper, String? help}) {
   final row = Row(
-    // A value box draws its text a little above the middle, so centring the
-    // label on the box leaves the two about 5px apart. Aligning the baselines
-    // puts the label on the same line as the digits instead.
+    // A value box draws its text a little above the middle, so the label is
+    // aligned to its baseline rather than centred against it.
     crossAxisAlignment: CrossAxisAlignment.baseline,
     textBaseline: TextBaseline.alphabetic,
     children: [
       Expanded(child: Text(label)),
       const SizedBox(width: _labelGap),
-      // Box and stepper travel as one piece. The stepper holds no text and so
-      // reports no baseline, which leaves this row reporting the box's while
-      // the stepper is centred against it.
+      // The stepper holds no text and so reports no baseline, which leaves this
+      // row reporting the box's while the stepper is centred against it.
       Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -78,8 +73,8 @@ class IntegerField extends StatelessWidget {
 ///
 /// [decimalPlaces] fixes the precision, zero for whole numbers such as ages and
 /// more for money and rates. [prefix] and [suffix] name the unit inside the
-/// box, and [help] spells out the parameter out on hover. [minValue] floors the
-/// value and the arrows; a negative floor also lets the box accept a minus sign.
+/// box, and [help] spells out the parameter on hover. A negative [minValue]
+/// lets the box accept a minus sign.
 class NumberField extends StatefulWidget {
   final String label;
   final double value;
@@ -132,9 +127,8 @@ class NumberFieldState extends State<NumberField> {
   /// True for a field whose floor is below zero, such as a market drop.
   bool get _isSigned => widget.minValue < 0;
 
-  /// Accepts digits, a leading minus sign when [minValue] allows one, plus one
-  /// decimal point carrying at most [decimalPlaces] digits, and drops the
-  /// keystroke that would break that.
+  /// Accepts digits, an optional leading minus sign, and one decimal point
+  /// carrying at most [decimalPlaces] digits; drops the rest.
   TextInputFormatter get _formatter {
     final sign = _isSigned ? '-?' : '';
     final pattern = RegExp('^$sign\\d{0,9}(\\.\\d{0,${widget.decimalPlaces}})?\$');
@@ -148,9 +142,8 @@ class NumberFieldState extends State<NumberField> {
     super.dispose();
   }
 
-  // Only well-formed numbers at or above [minValue] are accepted. An emptied
-  // box falls back to zero so clearing a field zeroes the parameter, while a
-  // half-typed one keeps the last value until it parses.
+  // Only well-formed numbers at or above [minValue] are accepted. An emptied box
+  // zeroes the parameter; a half-typed one keeps the last value until it parses.
   void _onChanged(String text) {
     final value = text.isEmpty ? emptyValue : double.tryParse(text);
     if (value != null && value >= widget.minValue) {
@@ -169,8 +162,8 @@ class NumberFieldState extends State<NumberField> {
     if (rounded == null || rounded < widget.minValue) return;
 
     setState(() => _value = rounded);
-    // Write the box text directly so typing and stepping share one value, and
-    // keep the caret at the end of the new text.
+    // Written directly so typing and stepping share one value, caret kept at
+    // the end of the new text.
     _controller.value = TextEditingValue(
       text: _text,
       selection: TextSelection.collapsed(offset: _text.length),
@@ -185,9 +178,9 @@ class NumberFieldState extends State<NumberField> {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      // Under Material 3 an IconButton keeps the 40x40 default minimum and
-      // ignores the `constraints` constructor argument, so the size the layout
-      // is built around has to be set through the style instead.
+      // Under Material 3 an IconButton keeps the 40x40 default minimum and ignores
+      // the `constraints` constructor argument, so the size has to come from
+      // the style.
       style: IconButton.styleFrom(
         foregroundColor: Theme.of(context).colorScheme.primary,
         minimumSize: const Size(_stepperWidth, _stepperHeight),
@@ -254,11 +247,10 @@ class AgeListField extends StatefulWidget {
 class AgeListFieldState extends State<AgeListField> {
   late final TextEditingController _controller = TextEditingController(text: widget.value.join(', '));
 
-  /// Digits and separators only, so the box can never hold a stray letter.
+  /// Digits and separators only.
   static final _formatter = FilteringTextInputFormatter.allow(RegExp(r'[\d,\s]'));
 
-  /// The ages typed into [text]. Blank and half-typed entries are dropped, so a
-  /// trailing comma or a lone digit still parses into the ages before it.
+  /// The ages typed into [text], with blank and half-typed entries dropped.
   static List<int> _parse(String text) {
     return text
         .split(',')
@@ -309,9 +301,8 @@ class ConstantField extends StatelessWidget {
   Widget build(BuildContext context) {
     return _fieldRow(
       label,
-      // Right-aligned into the same column as the editable boxes, so the ages
-      // still line up without needing a box of their own. The box is as tall
-      // as one they use, which keeps the rows evenly spaced.
+      // Right-aligned into the same column as the editable boxes, so the ages still
+      // line up without a box of their own.
       SizedBox(
         width: _valueBoxWidth,
         height: _valueBoxHeight,
