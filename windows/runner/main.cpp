@@ -26,7 +26,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1600, 900);
+  Win32Window::Size size(1800, 1000);
   if (!window.Create(L"retirement_calculator", origin, size)) {
     return EXIT_FAILURE;
   }

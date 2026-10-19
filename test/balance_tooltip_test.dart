@@ -355,7 +355,9 @@ void main() {
     });
 
     testWidgets('the plan table hovers from the left edge of a cell', (tester) async {
-      tester.view.physicalSize = const Size(1500, 700);
+      // Wide enough that the balance columns keep a comfortable width now the
+      // table carries the two tax columns as well.
+      tester.view.physicalSize = const Size(1900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 

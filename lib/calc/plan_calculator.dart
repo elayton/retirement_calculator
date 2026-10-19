@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
@@ -76,7 +78,7 @@ class PlanCalculator {
       } else {
         final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance);
         next!.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
-        
+
         final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits);
         next!.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
       }
@@ -187,7 +189,7 @@ class PlanCalculator {
           // Pay expenses.
           next!.sub(PlanColumn.traditionalIra, "Pay Expenses", withdrawalAmount);
           next!.unpaidExpenses -= withdrawalAmount;
-          
+
           // Traditional IRA withdrawals are taxable as ordinary income.
           next!.ordinaryIncome += withdrawalAmount;
           next!.add(PlanColumn.income, "Withdrawal from Traditional IRA", withdrawalAmount);
@@ -266,7 +268,7 @@ class PlanCalculator {
   /// Add a year of growth to the brokerage balance.
   void _growBrokerage() {
     final growthRate = parameters.brokerageGrowthRate;
-    final total = next!.totalOf(PlanColumn.brokerage);
+    final total = next!.totalOf(PlanColumn.brokerage) - next!.brokerageWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     if (growthAmount > 0) {
       next!.add(PlanColumn.brokerage, "Growth", growthAmount);
@@ -276,7 +278,7 @@ class PlanCalculator {
   /// Add a year of growth to the 401(k) balance.
   void _growFourOhOneK() {
     final growthRate = parameters.fourOhOneKGrowthRate;
-    final total = next!.totalOf(PlanColumn.fourOhOneK);
+    final total = next!.totalOf(PlanColumn.fourOhOneK) - next!.fourOhOneKWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     if (growthAmount > 0) {
       next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
@@ -286,7 +288,7 @@ class PlanCalculator {
   /// Add a year of growth to the pre-tax traditional IRA balance.
   void _growTraditionalIra() {
     final growthRate = parameters.traditionalIraGrowthRate;
-    final total = next!.totalOf(PlanColumn.traditionalIra);
+    final total = next!.totalOf(PlanColumn.traditionalIra) - next!.traditionalIraWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     if (growthAmount > 0) {
       next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
@@ -296,7 +298,7 @@ class PlanCalculator {
   /// Add a year of growth to the after-tax Roth IRA balance.
   void _growRothIra() {
     final growthRate = parameters.rothIraGrowthRate;
-    final total = next!.totalOf(PlanColumn.rothIra);
+    final total = next!.totalOf(PlanColumn.rothIra) - next!.rothIraWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     if (growthAmount > 0) {
       next!.add(PlanColumn.rothIra, "Growth", growthAmount);
@@ -312,6 +314,82 @@ class PlanCalculator {
     if (growthAmount > 0) {
       next!.add(PlanColumn.hsa, "Growth", growthAmount);
     }
+  }
+
+  /// Federal income tax owed on this year's income.
+  ///
+  /// The U.S. model is progressive, so each marginal rate applies only to the
+  /// slice of taxable income inside its own bracket rather than to the income
+  /// as a whole.  [PlanConstants.ordinaryIncomeTaxBrackets] gives each bracket as
+  /// an upper bound on taxable income (a null bound is the uncapped top
+  /// bracket), so the slice for a bracket is the income above the previous bound
+  /// and up to this one.  [PlanConstants.capitalGainsTaxBrackets] has the same
+  /// shape.
+  ///
+  /// Income stacks in three layers.  The standard deduction shelters the
+  /// bottom, so it comes off ordinary income first and then goes on sheltering
+  /// gains once ordinary income runs out.  Ordinary income then fills upward
+  /// through the ordinary brackets, and the gains occupy whatever room is left
+  /// over, taxed by position in the gains brackets.  A gain landing at a stack
+  /// position under $98,900 is therefore taxed at 0%, even though the same gain
+  /// earned by someone with high wages would be taxed at 15%.
+  ///
+  /// Records both the tax owed and, in [PlanTotals.taxBracket], the highest
+  /// marginal rate any income reached.  That rate is the topmost of the two
+  /// walks rather than the ordinary one alone, so a year whose gains land in a
+  /// higher band than the wages do reports the gains band.
+  void _calculateTax() {
+    // The deduction comes off the bottom of the stack, so it shelters ordinary
+    // income first and then continues into the gains.
+    final ordinaryTaxable = max(0.0, next!.ordinaryIncome - PlanConstants.standardDeduction);
+    final gainsTaxable = max(0.0, next!.ordinaryIncome + next!.capitalGains - PlanConstants.standardDeduction) - ordinaryTaxable;
+
+    var tax = 0.0;
+    var lowerBound = 0.0;
+    var topRate = 0.0;
+
+    /* Ordinary income. */
+
+    for (final (upperBound, rate) in PlanConstants.ordinaryIncomeTaxBrackets) {
+      // Income has run out before this bracket starts.
+      if (ordinaryTaxable <= lowerBound) break;
+
+      final upper = upperBound ?? ordinaryTaxable;
+      tax += _percentageOf(min(ordinaryTaxable, upper) - lowerBound, rate);
+      topRate = max(topRate, rate);
+
+      // The uncapped top bracket closes the walk.
+      if (upperBound == null) break;
+
+      lowerBound = upperBound;
+    }
+
+    /* Capital gains, starting where ordinary income left off. */
+
+    final stackTop = ordinaryTaxable + gainsTaxable;
+    lowerBound = ordinaryTaxable;
+
+    for (final (upperBound, rate) in PlanConstants.capitalGainsTaxBrackets) {
+      // Gains have run out before this bracket starts.
+      if (stackTop <= lowerBound) break;
+
+      final upper = upperBound ?? stackTop;
+
+      // Ordinary income may already have reached past this bracket, in which
+      // case none of the gains are taxed here.  The bound still has to hold
+      // steady, or the next bracket would tax room the gains never reached.
+      if (upper > lowerBound) {
+        tax += _percentageOf(min(stackTop, upper) - lowerBound, rate);
+        topRate = max(topRate, rate);
+        lowerBound = upper;
+      }
+
+      // The uncapped top bracket closes the walk.
+      if (upperBound == null) break;
+    }
+
+    next!.tax = tax;
+    next!.taxBracket = topRate;
   }
 
   /// Advance the account totals by one year and return the new totals.
@@ -334,12 +412,14 @@ class PlanCalculator {
     _setRothIraConversion();
     _convertFourOhOneKToRothIra();
     _convertTraditionalIraToRothIra();
-    
+
     _growBrokerage();
     _growFourOhOneK();
     _growTraditionalIra();
     _growRothIra();
     _growHsa();
+
+    _calculateTax();
 
     ++_iteration;
 

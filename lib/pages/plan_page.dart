@@ -8,6 +8,7 @@ import '../calc/plan_calculator.dart';
 import '../widgets/plan_sidebar.dart';
 import '../widgets/portfolio_widgets.dart';
 import '../widgets/balance_tooltip.dart';
+import '../utils/formatting.dart';
 
 class PlanPage extends StatefulWidget {
   final Portfolio? portfolio;
@@ -86,13 +87,24 @@ class _PlanPageState extends State<PlanPage> {
     return (afterRetirement ? Colors.green : Colors.orange).withValues(alpha: 0.12);
   }
 
+  /// One cell of the projection table.  The account columns carry a running
+  /// balance and open a breakdown on hover; the tax columns hold a single
+  /// figure for the year, with no running total to account for.
+  Widget _cell(PlanColumn column, PlanTotals totals) => switch (column) {
+    PlanColumn.taxBracket => rightAlign(Text(formatPercent(totals.taxBracket))),
+    PlanColumn.tax => rightAlign(Text(formatCurrency(totals.tax))),
+    _ => BalanceTooltip(balance: totals.balanceOf(column)),
+  };
+
   /// The per-age projection table.
   Widget _planTable(BuildContext context, List<PlanColumn> columns, List<(int, PlanTotals)> rows, PlanParameters parameters) {
     return Table(
       border: TableBorder(verticalInside: BorderSide(width: 1, color: Theme.of(context).colorScheme.outlineVariant)),
-      // The age column holds a two-digit number, so it needs only a fraction of the
-      // width of a currency column.
-      columnWidths: {0: const FlexColumnWidth(0.35), for (var i = 1; i <= columns.length; i++) i: const FlexColumnWidth()},
+      // The age column is sized to its own contents rather than a share of the
+      // table, so the header keeps to one line at any width instead of wrapping
+      // the moment the window narrows.  The currency columns still divide what
+      // is left between them.
+      columnWidths: {0: const IntrinsicColumnWidth(), for (var i = 1; i <= columns.length; i++) i: const FlexColumnWidth()},
       children: [
         TableRow(
           decoration: BoxDecoration(
@@ -119,10 +131,7 @@ class _PlanPageState extends State<PlanPage> {
                   ? Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outline))
                   : null,
             ),
-            children: [
-              tableCell(Text('${row.$1}')),
-              for (final c in columns) tableCell(BalanceTooltip(balance: row.$2.balanceOf(c))),
-            ],
+            children: [tableCell(Text('${row.$1}')), for (final c in columns) tableCell(_cell(c, row.$2))],
           ),
       ],
     );

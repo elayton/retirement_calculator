@@ -13,9 +13,12 @@ abstract final class PlanConstants {
   static const double standardDeduction = 32200;
 
   /// Each entry is a (threshold, rate %) pair; a null threshold means no cap.
-  static const taxBrackets = <(double?, double)>[(24800, 10), (100800, 12), (211400, 22), (403550, 24), (512450, 32), (768700, 35), (null, 37)];
+  static const ordinaryIncomeTaxBrackets = <(double?, double)>[(24800, 10), (100800, 12), (211400, 22), (403550, 24), (512450, 32), (768700, 35), (null, 37)];
 
-  static const double capitalGainsTaxRate = 15;
+  /// Long-term capital gains brackets, in the same (threshold, rate %) shape as
+  /// [ordinaryIncomeTaxBrackets], and stacked above ordinary income rather than
+  /// replacing it.
+  static const capitalGainsTaxBrackets = <(double?, double)>[(98900, 0), (613700, 15), (null, 20)];
 
   static const socialSecurityBenefitByAge = <int, double>{62: 2860, 63: 3071, 64: 3295, 65: 3581, 66: 3868, 67: 4156, 68: 4195, 69: 4540, 70: 5192};
 

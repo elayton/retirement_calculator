@@ -8,7 +8,11 @@ enum PlanColumn {
   fourOhOneK('401(k)'),
   traditionalIra('Traditional IRA'),
   rothIra('Roth IRA'),
-  hsa('HSA');
+  hsa('HSA'),
+  // Unlike the others, the tax columns hold a figure for the year rather than a
+  // running balance, so they read from PlanTotals instead of from [balances].
+  taxBracket('Tax Bracket'),
+  tax('Tax');
 
   final String label;
 
@@ -42,7 +46,7 @@ class PlanBalance {
 
 class PlanTotals {
   final Map<PlanColumn, PlanBalance> balances = {};
-  
+
   double salary = 0;
 
   double ordinaryIncome = 0;
@@ -55,6 +59,9 @@ class PlanTotals {
   double fourOhOneKWithdrawals = 0;
   double traditionalIraWithdrawals = 0;
   double rothIraWithdrawals = 0;
+
+  double taxBracket = 0;
+  double tax = 0;
 
   PlanTotals.fromPortfolio(Portfolio portfolio) {
     for (final account in portfolio.accounts) {
