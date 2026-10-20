@@ -87,11 +87,14 @@ class _BalanceBreakdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
 
-    final lines = <Widget>[
+    final adjustmentLines = <Widget>[
       // A "$0" starting line says nothing the adjustments below it do not already.
       if (balance.initial != 0) _line('Initial', formatCurrency(balance.initial)),
       for (final (description, amount) in balance.adjustments)
         _line(description, _signed(amount), color: _colorFor(brightness, amount)),
+    ];
+
+    final noteLines = <Widget>[
       // Notes are context rather than a movement, so they take no colour and no sign.
       for (final (description, amount) in balance.notes)
         _line(description, amount == null ? '' : formatCurrency(amount)),
@@ -106,14 +109,24 @@ class _BalanceBreakdown extends StatelessWidget {
         children: [
           // The gap rides on the bottom of each line, so a line that drops out
           // takes its spacing with it and the rest of the column holds still.
-          for (final line in lines)
+          for (final line in adjustmentLines)
             Padding(padding: const EdgeInsets.only(bottom: _lineGap), child: line),
           Padding(
             // Left off when the total is the only line: carried anyway it would
             // push the lone line down inside the panel.
-            padding: EdgeInsets.only(top: lines.isEmpty ? 0 : _summaryGap),
+            padding: EdgeInsets.only(
+              top: adjustmentLines.isEmpty ? 0 : _summaryGap,
+              bottom: noteLines.isEmpty ? 0 : _lineGap,
+            ),
             child: _line('Total', formatCurrency(balance.total), bold: true),
           ),
+          // Notes follow the total, set apart from it the same way the total is
+          // set apart from the adjustments above, and spaced like the adjustments.
+          for (final (index, line) in noteLines.indexed)
+            Padding(
+              padding: EdgeInsets.only(top: index == 0 ? _summaryGap : 0, bottom: _lineGap),
+              child: line,
+            ),
         ],
       ),
     );

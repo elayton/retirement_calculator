@@ -32,13 +32,15 @@ extension PortfolioAccountTypePlanColumn on PortfolioAccountType {
 }
 
 class PlanBalance {
-  final double initial;
+  final double _initial;
   final List<(String, double)> adjustments = [];
   final List<(String, double?)> notes = [];
 
-  PlanBalance({this.initial = 0});
+  PlanBalance({this._initial = 0});
 
-  double get total => adjustments.fold(initial, (total, adjustment) => total + adjustment.$2);
+  double get initial => _initial;
+
+  double get total => adjustments.fold(_initial, (total, adjustment) => total + adjustment.$2);
 
   void add(String description, double amount) {
     adjustments.add((description, amount));
@@ -69,6 +71,10 @@ class PlanTotals {
   double taxBracket = 0;
   double tax = 0;
 
+  /// The tax owed on the previous year's income, carried forward so it can be
+  /// paid as part of this year's expenses after retirement.
+  double lastYearTax = 0;
+
   PlanTotals.fromPortfolio(Portfolio portfolio) {
     for (final account in portfolio.accounts) {
       final column = account.type.planColumn;
@@ -85,6 +91,9 @@ class PlanTotals {
     balances[PlanColumn.traditionalIra] = PlanBalance(initial: that.balances[PlanColumn.traditionalIra]?.total ?? 0);
     balances[PlanColumn.rothIra] = PlanBalance(initial: that.balances[PlanColumn.rothIra]?.total ?? 0);
     balances[PlanColumn.hsa] = PlanBalance(initial: that.balances[PlanColumn.hsa]?.total ?? 0);
+
+    // Carry the previous year's tax forward so it can be paid next year.
+    lastYearTax = that.tax;
   }
 
   /// The balance tracking [column], or an empty one for a column this portfolio

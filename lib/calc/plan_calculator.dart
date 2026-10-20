@@ -48,6 +48,9 @@ class PlanCalculator {
   /// counts as working.
   bool _isAfterRetirementAge() => age! > parameters.retirementAge;
 
+  /// One year after retirement age.
+  bool _isOneYearAfterRetirementAge() => age! > parameters.retirementAge + 1;
+
   /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
@@ -69,13 +72,21 @@ class PlanCalculator {
       if (_isAfterMedicareAge()) {
         final medicare = _monthlyToAnnual(parameters.medicare);
         next!.add(PlanColumn.expenses, "Medicare", medicare);
-        
+
       } else {
         final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance);
         next!.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
 
         final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits);
         next!.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
+      }
+
+      // Last year's taxes are part of this year's expenses.
+      if (_isOneYearAfterRetirementAge()) {
+        final lastYearTax = last.tax;
+        if (lastYearTax > 0) {
+          next!.add(PlanColumn.expenses, "Last Year's Taxes", lastYearTax);
+        }
       }
     }
 
@@ -316,7 +327,13 @@ class PlanCalculator {
     _contributeTo401k();
     _contributeToHsa();
 
+    // Pay expenses from brokerage until it runs out.
     _payExpensesFromBrokerage();
+    
+    // If we are retired and not on medicare yet, pay expenses from Roth IRA
+    // to lower MAGI.
+    //if (_isAfterRetirementAge() && !_isAfterMedicareAge()) _payExpensesFromRothIra();
+
     _payExpensesFromFourOhOneK();
     _payExpensesFromTraditionalIra();
     _payExpensesFromRothIra();

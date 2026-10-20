@@ -85,6 +85,9 @@ abstract final class TaxCalculator {
   /// column's total, its two parts as the lines above it, and the headroom to
   /// the next federal band as notes.
   static void record(PlanTotals totals, double ordinaryIncome, double capitalGains) {
+    if (ordinaryIncome > 0) totals.note(PlanColumn.tax, "From Ordinary Income", ordinaryIncome);
+    if (capitalGains > 0) totals.note(PlanColumn.tax, "From Capital Gains", capitalGains);
+
     final federalTax = federal(ordinaryIncome, capitalGains);
     final stateTax = state(ordinaryIncome, capitalGains);
 

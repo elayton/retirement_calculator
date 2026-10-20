@@ -22,5 +22,5 @@ class PlanParameters {
   double downMarketRate = -50;
   double brokerageContributions = 0;
   double rothIraContributions = 0;
-  double rothIraConversion = 80000;
+  double rothIraConversion = 100000;
 }
