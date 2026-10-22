@@ -12,7 +12,7 @@ import 'package:retirement_calculator/models/portfolio_models.dart';
 ///
 /// [salary] is paid only while the year is a working one, and [budget] is met
 /// from brokerage once it is not, so a year is one or the other.
-({double tax, double federal, double state, double bracket, double ordinary, double gains, Map<String, double?> notes}) taxYear({
+({double tax, double federal, double state, double bracket, double ordinary, double gains, double agi, Map<String, double?> notes}) taxYear({
   required int age,
   double salary = 0,
   double budget = 0,
@@ -51,6 +51,9 @@ import 'package:retirement_calculator/models/portfolio_models.dart';
     bracket: year.taxBracket,
     ordinary: year.ordinaryIncome,
     gains: year.capitalGains,
+    // The tax is computed on the adjusted gross income, which is the ordinary
+    // income less the deductions the plan counts it gross of.
+    agi: year.ordinaryIncome - year.agiDeductions,
     notes: {for (final (description, amount) in year.balanceOf(PlanColumn.tax).notes) description: amount},
   );
 }
@@ -112,7 +115,9 @@ void main() {
       expect(year.ordinary, salary, reason: 'salary alone is the ordinary income');
       expect(year.gains, 0);
 
-      final expected = expectHeadroom(salary, 0);
+      // The headroom is measured from the income the tax is computed on, which
+      // is the adjusted gross income.
+      final expected = expectHeadroom(year.agi, 0);
       expect(expected.ordinaryTaxable, greaterThan(0));
       expect(year.notes['Ordinary income to next federal bracket'], closeTo(expected.ordinaryHeadroom!, 0.01));
     });
@@ -126,7 +131,7 @@ void main() {
       expect(year.ordinary, greaterThan(0), reason: 'Social Security is taxable ordinary income');
       expect(year.gains, greaterThan(0), reason: 'the draw is taxed as gains');
 
-      final expected = expectHeadroom(year.ordinary, year.gains);
+      final expected = expectHeadroom(year.agi, year.gains);
       expect(expected.stackTop, lessThan(98900), reason: 'the stack must sit inside the 0% gains band for this to be its headroom');
       expect(expected.gainsHeadroom, isNotNull);
       expect(year.notes['Income to next capital gains bracket'], closeTo(expected.gainsHeadroom!, 0.01));
@@ -144,9 +149,11 @@ void main() {
 
     test('the top bracket reports that it is the top rather than a headroom', () {
       // Past $768,700 of taxable income is the uncapped 37% band, which has
-      // nothing above it.
-      final year = taxYear(age: 2, salary: 768700 + PlanConstants.standardDeduction + 50000, budget: 0);
+      // nothing above it. The salary has to clear it after the deductions and
+      // the standard deduction come off.
+      final year = taxYear(age: 2, salary: 900000, budget: 0);
 
+      expect(year.agi, greaterThan(768700 + PlanConstants.standardDeduction));
       expect(year.bracket, 37);
       expect(year.notes.containsKey('Ordinary income to next federal bracket'), isFalse);
       expect(year.notes['Top federal bracket already'], isNull);

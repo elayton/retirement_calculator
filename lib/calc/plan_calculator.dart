@@ -4,6 +4,7 @@ import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
 import 'tax_calculator.dart';
+import 'tax_rules.dart';
 
 /// Calculate successive rows of projected account totals by age.
 class PlanCalculator {
@@ -16,6 +17,13 @@ class PlanCalculator {
 
   /// Number of iteration steps completed so far.
   int _iteration = 0;
+
+  /// The factor the year's nominal amounts are scaled by: the inflation rate
+  /// compounded over the years the projection has run.
+  double _inflation = 1;
+
+  /// What one year of inflation is worth.
+  double get _inflationYear => 1 + parameters.inflationRate / 100;
 
   /// Begin a projection from [totals], copied into the shape the per-year steps
   /// read and add to.
@@ -66,24 +74,25 @@ class PlanCalculator {
   /// whichever health insurance applies, less any premium tax credits.
   void _setExpenses() {
     if (_isAfterRetirementAge()) {
-      final budget = _monthlyToAnnual(parameters.budget);
+      final budget = _monthlyToAnnual(parameters.budget) * _inflation;
       next!.add(PlanColumn.expenses, "Budget", budget);
 
       if (_isAfterMedicareAge()) {
-        final medicare = _monthlyToAnnual(parameters.medicare);
+        final medicare = _monthlyToAnnual(parameters.medicare) * _inflation;
         next!.add(PlanColumn.expenses, "Medicare", medicare);
 
       } else {
-        final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance);
+        final medicalInsurance = _monthlyToAnnual(parameters.medicalInsurance) * _inflation;
         next!.add(PlanColumn.expenses, "Medical Insurance", medicalInsurance);
 
-        final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits);
+        final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits) * _inflation;
         next!.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
       }
 
-      // Last year's taxes are part of this year's expenses.
+      // Last year's taxes are part of this year's expenses, and are worth a
+      // year's inflation by the time they are paid.
       if (_isOneYearAfterRetirementAge()) {
-        final lastYearTax = last.tax;
+        final lastYearTax = last.tax * _inflationYear;
         if (lastYearTax > 0) {
           next!.add(PlanColumn.expenses, "Last Year's Taxes", lastYearTax);
         }
@@ -96,7 +105,7 @@ class PlanCalculator {
   /// Salary and bonus while working.
   void _earnSalary() {
     if (!_isAfterRetirementAge()) {
-      final salary = parameters.baseSalary;
+      final salary = parameters.baseSalary * _inflation;
       next!.add(PlanColumn.income, "Salary", salary);
       next!.salary += salary;
       next!.ordinaryIncome += salary;
@@ -110,15 +119,15 @@ class PlanCalculator {
 
   void _receiveSocialSecurity() {
     if (_isAfterPrimarySocialSecurityAge()) {
-      final benefit = _monthlyToAnnual(PlanConstants.socialSecurityBenefitByAge[parameters.primarySocialSecurityAge] ?? 0);
+      final benefit = _monthlyToAnnual(PlanConstants.socialSecurityBenefitByAge[parameters.primarySocialSecurityAge] ?? 0) * _inflation;
       next!.add(PlanColumn.income, "Primary Social Security", benefit);
-      next!.ordinaryIncome += _percentageOf(benefit, PlanConstants.socialSecurityTaxablePercentage);
+      next!.socialSecurity += benefit;
     }
 
     if (_isAfterSecondarySocialSecurityAge()) {
-      final benefit = _monthlyToAnnual((PlanConstants.socialSecurityBenefitByAge[parameters.secondarySocialSecurityAge] ?? 0) / 2);
+      final benefit = _monthlyToAnnual((PlanConstants.socialSecurityBenefitByAge[parameters.secondarySocialSecurityAge] ?? 0) / 2) * _inflation;
       next!.add(PlanColumn.income, "Secondary Social Security", benefit);
-      next!.ordinaryIncome += _percentageOf(benefit, PlanConstants.socialSecurityTaxablePercentage);
+      next!.socialSecurity += benefit;
     }
 
     next!.unpaidExpenses -= next!.totalOf(PlanColumn.income);
@@ -129,6 +138,9 @@ class PlanCalculator {
       final employeeContribution = _percentageOf(next!.salary, parameters.employee401kContributionRate);
       next!.add(PlanColumn.fourOhOneK, "Employee 401(k) Contribution", employeeContribution);
 
+      // The contribution is pre-tax, so it is out of the income.
+      next!.agiDeductions += employeeContribution;
+
       final employerContribution = _percentageOf(next!.salary, parameters.employer401kContributionRate);
       next!.add(PlanColumn.fourOhOneK, "Employer 401(k) Contribution", employerContribution);
     }
@@ -136,8 +148,11 @@ class PlanCalculator {
 
   void _contributeToHsa() {
     if (!_isAfterRetirementAge()) {
-      final hsaContribution = PlanConstants.hsaContributionLimit;
+      final hsaContribution = PlanConstants.hsaContributionLimit * _inflation;
       next!.add(PlanColumn.hsa, "HSA Contribution", hsaContribution);
+
+      // The contribution is deductible, so it is out of the income.
+      next!.agiDeductions += hsaContribution;
 
       // TODO: Add employer HSA contributions.
     }
@@ -312,8 +327,53 @@ class PlanCalculator {
     }
   }
 
+  /// Add the taxable part of the Social Security benefits to the ordinary
+  /// income.
+  ///
+  /// The benefit is taxed in proportion to the income around it, so the
+  /// taxable part can only be worked out once the year's income is settled.
+  void _taxableSocialSecurity() {
+    if (next!.socialSecurity <= 0) return;
+
+    final taxable = TaxCalculator.taxableSocialSecurity(
+      benefit: next!.socialSecurity,
+      // The combined income the worksheet measures against takes in the
+      // capital gains along with the ordinary income.
+      otherIncome: next!.ordinaryIncome + next!.capitalGains,
+      deductions: next!.agiDeductions,
+    );
+
+    next!.taxableSocialSecurity = taxable;
+    next!.ordinaryIncome += taxable;
+  }
+
   /// Record the tax owed on this year's income. See [TaxCalculator].
-  void _calculateTax() => TaxCalculator.record(next!, next!.ordinaryIncome, next!.capitalGains);
+  void _calculateTax() => TaxCalculator.record(next!, TaxRules.indexed(_inflation));
+
+  /// Record the year's modified adjusted gross income, the figure the premium
+  /// tax credit turns on.
+  ///
+  /// The premium tax credit counts the whole Social Security benefit: the
+  /// taxable part of it is in the ordinary income already, and the tax-exempt
+  /// part is added back here. It counts neither the pre-tax 401(k)
+  /// contribution nor the HSA deduction, so the deductions the model's income
+  /// is gross of come back out. A deductible traditional IRA contribution
+  /// would come out the same way, but the plan makes none: moving money from
+  /// the 401(k) into the IRA is a transfer, not a contribution.
+  void _calculateMagi() {
+    final taxExemptSocialSecurity = next!.socialSecurity - next!.taxableSocialSecurity;
+
+    final magi = next!.ordinaryIncome + next!.capitalGains - next!.agiDeductions + taxExemptSocialSecurity;
+
+    next!.magi = magi;
+    next!.note(PlanColumn.tax, 'MAGI', magi);
+
+    // The premium tax credit is gone once the MAGI passes four times the
+    // federal poverty level, which moves with the years like the tax rules.
+    final povertyLevel = PlanConstants.federalPovertyLevel * _inflation;
+
+    next!.note(PlanColumn.tax, '4x Federal Poverty Level', 4 * povertyLevel);
+  }
 
   /// Advance the account totals by one year and return the new totals.
   PlanTotals calculateNext(int age) {
@@ -327,13 +387,14 @@ class PlanCalculator {
     _contributeTo401k();
     _contributeToHsa();
 
-    // Pay expenses from brokerage until it runs out.
+    // Pay expenses from brokerage.
     _payExpensesFromBrokerage();
     
     // If we are retired and not on medicare yet, pay expenses from Roth IRA
     // to lower MAGI.
     //if (_isAfterRetirementAge() && !_isAfterMedicareAge()) _payExpensesFromRothIra();
 
+    // Pay expenses from other account types in order.
     _payExpensesFromFourOhOneK();
     _payExpensesFromTraditionalIra();
     _payExpensesFromRothIra();
@@ -347,9 +408,17 @@ class PlanCalculator {
     _growRothIra();
     _growHsa();
 
+    // The taxable part of the benefit depends on the whole year's income, so
+    // it can only be worked out once the income is settled.
+    _taxableSocialSecurity();
+
     _calculateTax();
+    _calculateMagi();
 
     ++_iteration;
+
+    // The next year is worth a year's more inflation than this one.
+    _inflation *= _inflationYear;
 
     last = next!;
     return last;

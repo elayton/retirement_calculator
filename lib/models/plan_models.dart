@@ -58,6 +58,18 @@ class PlanTotals {
 
   double salary = 0;
 
+  /// The Social Security benefits received this year, the taxable part and the
+  /// tax-exempt part alike.
+  double socialSecurity = 0;
+
+  /// The taxable part of the Social Security benefits received this year.
+  double taxableSocialSecurity = 0;
+
+  /// The deductions this year takes off the gross income: the pre-tax 401(k)
+  /// contribution and the deductible HSA contribution. The model counts the
+  /// salary gross of both.
+  double agiDeductions = 0;
+
   double ordinaryIncome = 0;
   double capitalGains = 0;
 
@@ -70,6 +82,10 @@ class PlanTotals {
 
   double taxBracket = 0;
   double tax = 0;
+
+  /// The year's modified adjusted gross income, the figure the premium tax
+  /// credit turns on.
+  double magi = 0;
 
   /// The tax owed on the previous year's income, carried forward so it can be
   /// paid as part of this year's expenses after retirement.

@@ -8,6 +8,8 @@ class PlanParameters {
   double medicalInsurance = 2871; // Per month.
   double premiumTaxCredits = 2224; // Per month.
   double medicare = 2 * 203; // Per month.
+  /// The expected annual rate of inflation. Every nominal amount moves with
+  /// it, and so do the tax rules that are indexed for inflation.
   double inflationRate = 0;
   double baseSalary = 170000;
   double employee401kContributionRate = 6;

@@ -171,7 +171,7 @@ class PlanSidebar extends StatelessWidget {
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
-          help: 'Expected annual rate by which spending and premiums increase.',
+          help: 'Expected annual rate of inflation. Spending, premiums, wages, benefits, and the tax rules all move with it.',
           onChanged: (value) {
             parameters.inflationRate = value;
             onChanged();

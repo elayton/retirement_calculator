@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../models/plan_constants.dart';
 import '../models/plan_models.dart';
+import 'tax_rules.dart';
 
 /// Federal and Utah income tax on a year of income. The federal return is
 /// progressive and stacks capital gains above ordinary income, so a gain can
@@ -12,11 +13,45 @@ abstract final class TaxCalculator {
 
   /// The three layers of a year's taxable income: the standard deduction
   /// shelters the bottom, then ordinary income, then gains.
-  static ({double ordinaryTaxable, double gainsTaxable, double stackTop}) _stack(double ordinaryIncome, double capitalGains) {
-    final ordinaryTaxable = max(0.0, ordinaryIncome - PlanConstants.standardDeduction);
-    final totalTaxable = max(0.0, ordinaryIncome + capitalGains - PlanConstants.standardDeduction);
+  static ({double ordinaryTaxable, double gainsTaxable, double stackTop}) _stack(TaxRules rules, double agi, double capitalGains) {
+    final ordinaryTaxable = max(0.0, agi - rules.standardDeduction);
+    final totalTaxable = max(0.0, agi + capitalGains - rules.standardDeduction);
 
     return (ordinaryTaxable: ordinaryTaxable, gainsTaxable: totalTaxable - ordinaryTaxable, stackTop: totalTaxable);
+  }
+
+  /// The taxable part of the Social Security benefits, per the worksheet in
+  /// Publication 915.
+  ///
+  /// The benefit is taxed in proportion to the income around it: none of it
+  /// below the first threshold, half of the income above it, and the maximum
+  /// rate on the rest, up to the maximum share of the benefit.
+  ///
+  /// [otherIncome] is the income the year brought besides the benefit, and
+  /// [deductions] the adjustments to income taken off it.
+  static double taxableSocialSecurity({required double benefit, required double otherIncome, required double deductions}) {
+    // Half the benefit counts toward the combined income the thresholds are
+    // measured against, and the adjustments to income come off that.
+    final combined = _percentageOf(benefit, PlanConstants.socialSecurityHalfPercentage) + otherIncome - deductions;
+
+    // Below the first threshold none of the benefit is taxed.
+    final excess = combined - PlanConstants.socialSecurityFirstThreshold;
+    if (excess <= 0) return 0;
+
+    // The band between the thresholds is taxed at half, and the income above
+    // the second threshold at the maximum rate.
+    final width = PlanConstants.socialSecuritySecondThreshold - PlanConstants.socialSecurityFirstThreshold;
+
+    final middle = min(
+      _percentageOf(min(excess, width), PlanConstants.socialSecurityHalfPercentage),
+      _percentageOf(benefit, PlanConstants.socialSecurityHalfPercentage),
+    );
+
+    final above = excess - width;
+    final top = above <= 0 ? 0.0 : _percentageOf(above, PlanConstants.socialSecurityMaximumTaxablePercentage);
+
+    // No more of the benefit can be taxed than its maximum share.
+    return min(middle + top, _percentageOf(benefit, PlanConstants.socialSecurityMaximumTaxablePercentage));
   }
 
   /// Tax on [taxable] walked up through [brackets] (upper bound, rate %) pairs,
@@ -43,12 +78,12 @@ abstract final class TaxCalculator {
     return (tax, topRate);
   }
 
-  /// Federal income tax on [ordinaryIncome] and [capitalGains], with the topmost
+  /// Federal income tax on [agi] and [capitalGains], with the topmost
   /// marginal rate reached. Gains occupy whatever room ordinary income left.
-  static ({double tax, double topRate}) federal(double ordinaryIncome, double capitalGains) {
-    final stack = _stack(ordinaryIncome, capitalGains);
+  static ({double tax, double topRate}) federal(TaxRules rules, double agi, double capitalGains) {
+    final stack = _stack(rules, agi, capitalGains);
 
-    final (ordinaryTax, ordinaryTopRate) = _walk(stack.ordinaryTaxable, PlanConstants.ordinaryIncomeTaxBrackets);
+    final (ordinaryTax, ordinaryTopRate) = _walk(stack.ordinaryTaxable, rules.ordinaryIncomeBrackets);
 
     // The gains bands are indexed against the top of the whole stack, so a band
     // ordinary income has already reached past must still advance the bound.
@@ -56,7 +91,7 @@ abstract final class TaxCalculator {
     var gainsTopRate = 0.0;
     var lowerBound = stack.ordinaryTaxable;
 
-    for (final (upperBound, rate) in PlanConstants.capitalGainsTaxBrackets) {
+    for (final (upperBound, rate) in rules.capitalGainsTaxBrackets) {
       if (stack.stackTop <= lowerBound) break;
 
       final upper = upperBound ?? stack.stackTop;
@@ -74,22 +109,31 @@ abstract final class TaxCalculator {
   }
 
   /// Utah taxes all income, gains included, at one rate. It has no deduction of
-  /// its own: it conforms to the federal [standardDeduction].
-  static double state(double ordinaryIncome, double capitalGains) {
-    final taxable = max(0.0, ordinaryIncome + capitalGains - PlanConstants.standardDeduction);
+  /// its own: it conforms to the federal [standardDeduction]. It taxes the
+  /// Social Security benefit as the federal return does, though it allows a
+  /// credit for it that the plan does not model.
+  static double state(TaxRules rules, double agi, double capitalGains) {
+    final taxable = max(0.0, agi + capitalGains - rules.standardDeduction);
 
     return _walk(taxable, PlanConstants.stateIncomeTaxBrackets).$1;
   }
 
-  /// Record [ordinaryIncome] and [capitalGains] against [totals]: the tax as the
-  /// column's total, its two parts as the lines above it, and the headroom to
-  /// the next federal band as notes.
-  static void record(PlanTotals totals, double ordinaryIncome, double capitalGains) {
-    if (ordinaryIncome > 0) totals.note(PlanColumn.tax, "From Ordinary Income", ordinaryIncome);
-    if (capitalGains > 0) totals.note(PlanColumn.tax, "From Capital Gains", capitalGains);
+  /// Record the tax owed on [totals]'s year of income: the tax as the column's
+  /// total, its two parts as the lines above it, and the headroom to the next
+  /// federal band as notes.
+  ///
+  /// [rules] are the tax rules of the year, with the indexed amounts scaled
+  /// for the year's inflation.
+  static void record(PlanTotals totals, TaxRules rules) {
+    // The income the tax is computed on is the adjusted gross income: the
+    // ordinary income less the deductions the plan counts it gross of.
+    final agi = totals.ordinaryIncome - totals.agiDeductions;
 
-    final federalTax = federal(ordinaryIncome, capitalGains);
-    final stateTax = state(ordinaryIncome, capitalGains);
+    if (agi > 0) totals.note(PlanColumn.tax, "From Ordinary Income", agi);
+    if (totals.capitalGains > 0) totals.note(PlanColumn.tax, "From Capital Gains", totals.capitalGains);
+
+    final federalTax = federal(rules, agi, totals.capitalGains);
+    final stateTax = state(rules, agi, totals.capitalGains);
 
     totals.tax = federalTax.tax + stateTax;
     totals.taxBracket = federalTax.topRate;
@@ -97,7 +141,7 @@ abstract final class TaxCalculator {
     if (federalTax.tax > 0) totals.add(PlanColumn.tax, "Federal Tax", federalTax.tax);
     if (stateTax > 0) totals.add(PlanColumn.tax, "Utah Tax", stateTax);
 
-    _noteHeadroom(totals, ordinaryIncome, capitalGains);
+    _noteHeadroom(totals, rules, agi, totals.capitalGains);
   }
 
   /// How much further [position] could go before the band above it starts, or
@@ -130,8 +174,8 @@ abstract final class TaxCalculator {
   /// Note how much further each layer of the federal stack could go before the
   /// band above it starts. Gains sit on top of the whole stack, so either kind
   /// of income counts toward them; a layer with nothing in it gets no note.
-  static void _noteHeadroom(PlanTotals totals, double ordinaryIncome, double capitalGains) {
-    final stack = _stack(ordinaryIncome, capitalGains);
+  static void _noteHeadroom(PlanTotals totals, TaxRules rules, double agi, double capitalGains) {
+    final stack = _stack(rules, agi, capitalGains);
 
     void note(List<(double?, double)> brackets, double position, String description, String atTopDescription) {
       if (position <= 0) return;
@@ -144,9 +188,9 @@ abstract final class TaxCalculator {
       }
     }
 
-    note(PlanConstants.ordinaryIncomeTaxBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
+    note(rules.ordinaryIncomeBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
     note(
-      PlanConstants.capitalGainsTaxBrackets,
+      rules.capitalGainsTaxBrackets,
       stack.gainsTaxable > 0 ? stack.stackTop : 0,
       'Income to next capital gains bracket',
       'Top capital gains bracket already',
