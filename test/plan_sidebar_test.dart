@@ -68,7 +68,7 @@ void main() {
       await _expandAll(tester);
 
       final rows = _fieldRows(tester);
-      expect(rows, hasLength(20));
+      expect(rows, hasLength(21));
 
       expect(rows.map((r) => r.right).toSet(), hasLength(1), reason: 'field rows have differing right edges');
       expect(rows.map((r) => r.width).toSet(), hasLength(1), reason: 'field rows have differing widths');
@@ -124,7 +124,7 @@ void main() {
         expect(labelBaseline, closeTo(boxBaseline, 0.01), reason: '"${(label.evaluate().first.widget as Text).data}" is not on its box baseline');
       }
 
-      expect(checked, 20, reason: 'not every field row reported a baseline');
+      expect(checked, 21, reason: 'not every field row reported a baseline');
     });
   });
 }

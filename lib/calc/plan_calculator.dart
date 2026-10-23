@@ -293,6 +293,17 @@ class PlanCalculator {
     }
   }
 
+  /// Add a year of growth to the cash balance.
+  void _growCash() {
+    final growthRate = parameters.cashGrowthRate;
+    final total = next!.totalOf(PlanColumn.cash);
+    final growthAmount = _prorate(_percentageOf(total, growthRate));
+
+    if (growthAmount > 0) {
+      next!.add(PlanColumn.cash, "Growth", growthAmount);
+    }
+  }
+
   /// Add a year of growth to the brokerage balance.
   void _growBrokerage() {
     final growthRate = parameters.brokerageGrowthRate;
@@ -432,14 +443,15 @@ class PlanCalculator {
     _transferFourOhOneKToTraditionalIra();
     _convertTraditionalIraToRothIra();
 
+    _growCash();
     _growBrokerage();
     _growFourOhOneK();
     _growTraditionalIra();
     _growRothIra();
     _growHsa();
 
-    // The taxable part of the benefit depends on the whole year's income, so
-    // it can only be worked out once the income is settled.
+    // The taxable part of Social Security depends on the whole year's income,
+    // so it can only be worked out once the income is settled.
     _taxableSocialSecurity();
 
     _calculateTax();

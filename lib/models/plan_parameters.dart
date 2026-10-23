@@ -12,9 +12,10 @@ class PlanParameters {
   /// it, and so do the tax rules that are indexed for inflation.
   double inflationRate = 0;
   double baseSalary = 170000;
+  double bonusRate = 10;
   double employee401kContributionRate = 6;
   double employer401kContributionRate = 3;
-  double bonusRate = 10;
+  double cashGrowthRate = 1;
   double brokerageGrowthRate = 5;
   double fourOhOneKGrowthRate = 8;
   double traditionalIraGrowthRate = 8;

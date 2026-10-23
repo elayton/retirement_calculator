@@ -76,6 +76,8 @@ class PlanSidebar extends StatelessWidget {
         IntegerField(
           label: 'Primary Social Security Age',
           value: parameters.primarySocialSecurityAge,
+          minValue: 62,
+          maxValue: 70,
           help: 'Age at which primary Social Security income begins.',
           onChanged: (value) {
             parameters.primarySocialSecurityAge = value;
@@ -86,6 +88,8 @@ class PlanSidebar extends StatelessWidget {
         IntegerField(
           label: 'Secondary Social Security Age',
           value: parameters.secondarySocialSecurityAge,
+          minValue: 62,
+          maxValue: 70,
           help: 'Age at which the secondary Social Security income begins.',
           onChanged: (value) {
             parameters.secondarySocialSecurityAge = value;
@@ -220,6 +224,20 @@ class PlanSidebar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        NumberField(
+          label: 'Cash Growth Rate',
+          value: parameters.cashGrowthRate,
+          decimalPlaces: 2,
+          step: 0.5,
+          minValue: _minRate,
+          suffix: '%',
+          help: 'Annual return on the cash balance.',
+          onChanged: (value) {
+            parameters.cashGrowthRate = value;
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
         NumberField(
           label: 'Brokerage Growth Rate',
           value: parameters.brokerageGrowthRate,

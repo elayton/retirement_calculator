@@ -143,7 +143,7 @@ void main() {
       // With enough other income the benefit is taxed, but the credit still
       // counts all of it: the taxable part is in the ordinary income, and the
       // tax-exempt part is added back.
-      final year = magiYear(age: 66, retirementAge: 65, budget: 20000, socialSecurityAge: 62, brokerage: 500000);
+      final year = magiYear(age: 65, retirementAge: 64, budget: 20000, socialSecurityAge: 62, brokerage: 500000);
 
       expect(year.taxableSocialSecurity, greaterThan(0), reason: 'the benefit should be taxed in part');
       expect(year.magi, closeTo(year.ordinary + year.gains + year.socialSecurity - year.taxableSocialSecurity, 0.01));
@@ -197,7 +197,7 @@ void main() {
     });
 
     test('the year Medicare starts has a MAGI', () {
-      final year = magiYear(age: 66, retirementAge: 65, budget: 5000, brokerage: 500000);
+      final year = magiYear(age: 65, retirementAge: 64, budget: 5000, brokerage: 500000);
 
       expect(year.magi, greaterThan(0));
       expect(year.notes['MAGI'], closeTo(year.magi, 0.01));

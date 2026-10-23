@@ -54,15 +54,31 @@ class IntegerField extends StatelessWidget {
   final String label;
   final int value;
   final ValueChanged<int> onChanged;
+  final double step;
+  final double minValue;
+  final double maxValue;
   final String? help;
 
-  const IntegerField({super.key, required this.label, required this.value, required this.onChanged, this.help});
+  const IntegerField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.step = 1,
+    this.minValue = 0,
+    this.maxValue = double.infinity,
+    this.help,
+  });
 
   @override
   Widget build(BuildContext context) {
     return NumberField(
       label: label,
       value: value.toDouble(),
+      decimalPlaces: 0,
+      step: step,
+      minValue: minValue,
+      maxValue: maxValue,
       help: help,
       onChanged: (value) => onChanged(value.round()),
     );
@@ -82,6 +98,7 @@ class NumberField extends StatefulWidget {
   final int decimalPlaces;
   final double step;
   final double minValue;
+  final double maxValue;
   final String? prefix;
   final String? suffix;
   final String? help;
@@ -94,6 +111,7 @@ class NumberField extends StatefulWidget {
     this.decimalPlaces = 0,
     this.step = 1,
     this.minValue = 0,
+    this.maxValue = double.infinity,
     this.prefix,
     this.suffix,
     this.help,
@@ -146,7 +164,7 @@ class NumberFieldState extends State<NumberField> {
   // zeroes the parameter; a half-typed one keeps the last value until it parses.
   void _onChanged(String text) {
     final value = text.isEmpty ? emptyValue : double.tryParse(text);
-    if (value != null && value >= widget.minValue) {
+    if (value != null && value >= widget.minValue && value <= widget.maxValue) {
       setState(() => _value = value);
       widget.onChanged(value);
     }
@@ -154,12 +172,12 @@ class NumberFieldState extends State<NumberField> {
 
   void _step(double delta) {
     final value = _value + delta;
-    if (value < widget.minValue) return;
+    if (value < widget.minValue || value > widget.maxValue) return;
 
     // Round-trip through the box text so stepping a fractional value by a
     // tenth does not accumulate floating point noise.
     final rounded = double.tryParse(_format(value, widget.decimalPlaces));
-    if (rounded == null || rounded < widget.minValue) return;
+    if (rounded == null || rounded < widget.minValue || rounded > widget.maxValue) return;
 
     setState(() => _value = rounded);
     // Written directly so typing and stepping share one value, caret kept at
@@ -221,7 +239,7 @@ class NumberFieldState extends State<NumberField> {
       stepper: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _arrow(Icons.keyboard_arrow_up, 'Increase', () => _step(widget.step)),
+          _arrow(Icons.keyboard_arrow_up, 'Increase', _value < widget.maxValue ? () => _step(widget.step) : null),
           _arrow(Icons.keyboard_arrow_down, 'Decrease', _value > widget.minValue ? () => _step(-widget.step) : null),
         ],
       ),
