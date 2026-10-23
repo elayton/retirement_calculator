@@ -118,6 +118,24 @@ abstract final class TaxCalculator {
     return _walk(taxable, PlanConstants.stateIncomeTaxBrackets).$1;
   }
 
+  /// The year's modified adjusted gross income, the figure the premium tax
+  /// credit turns on.
+  ///
+  /// The premium tax credit counts the whole Social Security benefit: the
+  /// taxable part of it is in the ordinary income already, and the tax-exempt
+  /// part is added back here. It counts neither the pre-tax 401(k)
+  /// contribution nor the HSA deduction, so the deductions the model's income
+  /// is gross of come back out. A deductible traditional IRA contribution
+  /// would come out the same way, but the plan makes none: moving money from
+  /// the 401(k) into the IRA is a transfer, not a contribution.
+  static double magi({
+    required double ordinaryIncome,
+    required double capitalGains,
+    required double agiDeductions,
+    required double taxExemptSocialSecurity,
+  }) =>
+      ordinaryIncome + capitalGains - agiDeductions + taxExemptSocialSecurity;
+
   /// Record the tax owed on [totals]'s year of income: the tax as the column's
   /// total, its two parts as the lines above it, and the headroom to the next
   /// federal band as notes.

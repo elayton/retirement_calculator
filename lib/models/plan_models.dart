@@ -32,18 +32,21 @@ extension PortfolioAccountTypePlanColumn on PortfolioAccountType {
 }
 
 class PlanBalance {
-  final double _initial;
+  final double initial;
   final List<(String, double)> adjustments = [];
   final List<(String, double?)> notes = [];
+  double total;
 
-  PlanBalance({this._initial = 0});
-
-  double get initial => _initial;
-
-  double get total => adjustments.fold(_initial, (total, adjustment) => total + adjustment.$2);
+  PlanBalance({this.initial = 0}) : total = initial;
 
   void add(String description, double amount) {
     adjustments.add((description, amount));
+    total += amount;
+  }
+
+  void sub(String description, double amount) {
+    adjustments.add((description, -amount));
+    total -= amount;
   }
 
   /// Records a line for the breakdown that is context rather than a movement, so
@@ -84,8 +87,18 @@ class PlanTotals {
   double tax = 0;
 
   /// The year's modified adjusted gross income, the figure the premium tax
-  /// credit turns on.
+  /// credit turns on. It is worked out only in the years that figure matters
+  /// for, and is zero in the others.
   double magi = 0;
+
+  /// The premium tax credits received this year: what the marketplace paid
+  /// the insurance company on the household's behalf.
+  double premiumTaxCredits = 0;
+
+  /// The premium tax credits received this year that have to be paid back with
+  /// the return for the year, because the year's MAGI passed four times the
+  /// federal poverty level.
+  double premiumTaxCreditRepayment = 0;
 
   /// The tax owed on the previous year's income, carried forward so it can be
   /// paid as part of this year's expenses after retirement.

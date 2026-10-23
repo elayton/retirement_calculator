@@ -62,6 +62,14 @@ class PlanCalculator {
   /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
 
+  /// Whether the MAGI is worth working out this year: the years after
+  /// retirement, up to and including the year Medicare takes over.
+  ///
+  /// The MAGI is the figure the premium tax credit turns on, so it is only of
+  /// interest once the salary has stopped and private insurance is still being
+  /// bought, and in the year Medicare takes over.
+  bool _isMagiYear() => _isAfterRetirementAge() && !_isAfterMedicareAge();
+
   bool _isAfterRothConversionAge() => age! > parameters.rothIraConversionAge;
 
   /// Whether primary Social Security has started.
@@ -71,7 +79,8 @@ class PlanCalculator {
   bool _isAfterSecondarySocialSecurityAge() => age! > parameters.secondarySocialSecurityAge;
 
   /// Money going out over the year, and only once retired: the budget plus
-  /// whichever health insurance applies, less any premium tax credits.
+  /// whichever health insurance applies, less any premium tax credits, plus
+  /// the bill for last year's taxes.
   void _setExpenses() {
     if (_isAfterRetirementAge()) {
       final budget = _monthlyToAnnual(parameters.budget) * _inflation;
@@ -87,6 +96,10 @@ class PlanCalculator {
 
         final premiumTaxCredits = _monthlyToAnnual(parameters.premiumTaxCredits) * _inflation;
         next!.sub(PlanColumn.expenses, "Premium Tax Credits", premiumTaxCredits);
+
+        // The credits received this year are the ones that have to be paid
+        // back if the year's income turns out to be too high.
+        next!.premiumTaxCredits = premiumTaxCredits;
       }
 
       // Last year's taxes are part of this year's expenses, and are worth a
@@ -96,6 +109,15 @@ class PlanCalculator {
         if (lastYearTax > 0) {
           next!.add(PlanColumn.expenses, "Last Year's Taxes", lastYearTax);
         }
+      }
+
+      // The premium tax credits received last year have to be paid back when
+      // last year's income passed the line above the poverty level. The bill
+      // comes with last year's taxes, and is worth a year's inflation by the
+      // time it is paid.
+      final repayment = last.premiumTaxCreditRepayment * _inflationYear;
+      if (repayment > 0) {
+        next!.add(PlanColumn.expenses, "Premium Tax Credit Repayment", repayment);
       }
     }
 
@@ -351,28 +373,36 @@ class PlanCalculator {
   void _calculateTax() => TaxCalculator.record(next!, TaxRules.indexed(_inflation));
 
   /// Record the year's modified adjusted gross income, the figure the premium
-  /// tax credit turns on.
+  /// tax credit turns on. See [TaxCalculator.magi].
   ///
-  /// The premium tax credit counts the whole Social Security benefit: the
-  /// taxable part of it is in the ordinary income already, and the tax-exempt
-  /// part is added back here. It counts neither the pre-tax 401(k)
-  /// contribution nor the HSA deduction, so the deductions the model's income
-  /// is gross of come back out. A deductible traditional IRA contribution
-  /// would come out the same way, but the plan makes none: moving money from
-  /// the 401(k) into the IRA is a transfer, not a contribution.
+  /// Above four times the poverty level the credit allowed is nothing at all,
+  /// so all of the credit received has to be paid back with the return for the
+  /// year.
   void _calculateMagi() {
-    final taxExemptSocialSecurity = next!.socialSecurity - next!.taxableSocialSecurity;
+    if (_isMagiYear()) {
+      final magi = TaxCalculator.magi(
+        ordinaryIncome: next!.ordinaryIncome,
+        capitalGains: next!.capitalGains,
+        agiDeductions: next!.agiDeductions,
+        taxExemptSocialSecurity: next!.socialSecurity - next!.taxableSocialSecurity,
+      );
 
-    final magi = next!.ordinaryIncome + next!.capitalGains - next!.agiDeductions + taxExemptSocialSecurity;
+      next!.magi = magi;
+      next!.note(PlanColumn.tax, 'MAGI', magi);
 
-    next!.magi = magi;
-    next!.note(PlanColumn.tax, 'MAGI', magi);
+      // The premium tax credit is gone once the MAGI passes four times the
+      // federal poverty level, which moves with the years like the tax rules.
+      final povertyLevel = PlanConstants.federalPovertyLevel * _inflation;
 
-    // The premium tax credit is gone once the MAGI passes four times the
-    // federal poverty level, which moves with the years like the tax rules.
-    final povertyLevel = PlanConstants.federalPovertyLevel * _inflation;
+      next!.note(PlanColumn.tax, '4x Federal Poverty Level', 4 * povertyLevel);
 
-    next!.note(PlanColumn.tax, '4x Federal Poverty Level', 4 * povertyLevel);
+      if (magi > 4 * povertyLevel && next!.premiumTaxCredits > 0) {
+        // TODO: Between one and four times the poverty level only the excess of
+        // the credit received over the credit allowed has to be paid back.
+        next!.premiumTaxCreditRepayment = next!.premiumTaxCredits;
+        next!.note(PlanColumn.tax, 'Premium Tax Credit Repayment', next!.premiumTaxCredits);
+      }
+    }
   }
 
   /// Advance the account totals by one year and return the new totals.
