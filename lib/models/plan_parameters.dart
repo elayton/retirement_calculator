@@ -16,6 +16,7 @@ class PlanParameters {
   double employee401kContributionRate = 6;
   double employer401kContributionRate = 3;
   double cashGrowthRate = 1;
+  double brokerageAverageCostBasis = 240640.45;
   double brokerageGrowthRate = 5;
   double fourOhOneKGrowthRate = 8;
   double traditionalIraGrowthRate = 8;

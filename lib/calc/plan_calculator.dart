@@ -25,10 +25,15 @@ class PlanCalculator {
   /// What one year of inflation is worth.
   double get _inflationYear => 1 + parameters.inflationRate / 100;
 
+  /// The cost basis remaining in the brokerage account, tracked as withdrawals
+  /// are taken so the ratio of gain to withdrawal stays honest across years.
+  double _brokerageCostBasis = 0;
+
   /// Begin a projection from [totals], copied into the shape the per-year steps
   /// read and add to.
   PlanCalculator({required this.portfolioDate, required this.parameters, required PlanTotals totals}) {
     last = PlanTotals.fromPlanTotals(totals);
+    _brokerageCostBasis = parameters.brokerageAverageCostBasis;
   }
 
   /// [rate] percent of [amount].
@@ -193,9 +198,22 @@ class PlanCalculator {
           next!.sub(PlanColumn.brokerage, "Pay Expenses", withdrawalAmount);
           next!.unpaidExpenses -= withdrawalAmount;
 
-          // Brokerage withdrawals are taxable as capital gains.  TODO: Adjust brokerage capital gains with cost basis.
+          // Brokerage withdrawals are taxable as capital gains, adjusted for the
+          // average cost basis of the funds: only the part above the cost basis
+          // counts as a gain.
+          final totalBrokerage = next!.totalOf(PlanColumn.brokerage) + withdrawalAmount;
+          final costBasisPortion = totalBrokerage > 0
+              ? _brokerageCostBasis * withdrawalAmount / totalBrokerage
+              : 0.0;
+          // A withdrawal cannot produce a negative gain: at most the whole
+          // withdrawal is return of capital, so the gain is floored at zero.
+          final capitalGain = max(0.0, withdrawalAmount - costBasisPortion);
+
+          // The cost basis leaves the account alongside the cash.
+          _brokerageCostBasis = max(0.0, _brokerageCostBasis - costBasisPortion);
+
           next!.add(PlanColumn.income, "Withdrawal from Brokerage", withdrawalAmount);
-          next!.capitalGains += withdrawalAmount;
+          next!.capitalGains += capitalGain;
         }
       }
     }
