@@ -27,4 +27,5 @@ class PlanParameters {
   double brokerageContributions = 0;
   double rothIraContributions = 0;
   double rothIraConversion = 100000;
+  bool payTaxesFromRothIra = true;
 }

@@ -15,7 +15,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Downturns', 'Roth Conversion'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Downturns', 'Options'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -54,6 +54,7 @@ class PlanSidebar extends StatelessWidget {
       'Salary' => [_salaryFields(context)],
       'Growth' => [_growthFields(context)],
       'Downturns' => [_downturnFields(context)],
+      'Options' => [_optionsFields(context)],
       _ => null,
     };
   }
@@ -339,6 +340,37 @@ class PlanSidebar extends StatelessWidget {
             parameters.downMarketRate = value;
             onChanged();
           },
+        ),
+      ],
+    );
+  }
+
+  /// The controls for miscellaneous options.
+  Widget _optionsFields(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Text('Pay Taxes from Roth IRA')),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Transform.translate(
+                offset: const Offset(3, 0),
+                child: Transform.scale(
+                  scale: 0.7,
+                  child: Switch(
+                    value: parameters.payTaxesFromRothIra,
+                    padding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      parameters.payTaxesFromRothIra = value;
+                      onChanged();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

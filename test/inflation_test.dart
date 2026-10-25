@@ -82,7 +82,7 @@ void main() {
       expect(PlanConstants.socialSecuritySecondThreshold, 44000);
     });
 
-    test("last year's taxes are worth a year's inflation when they are paid", () {
+    test("taxes for the year are no longer added to expenses", () {
       final parameters = PlanParameters()
         ..baseSalary = 200000
         ..bonusRate = 0
@@ -93,11 +93,10 @@ void main() {
         ..inflationRate = 10
         ..retirementAge = 40;
 
-      final previous = project(parameters, [40, 41], brokerage: 1000000);
       final current = project(parameters, [40, 41, 42], brokerage: 1000000);
 
-      expect(previous.tax, greaterThan(0), reason: 'the year before has to owe some tax');
-      expect(expense(current, "Last Year's Taxes"), closeTo(previous.tax * 1.1, 0.01));
+      expect(current.tax, greaterThan(0), reason: 'the year has to owe some tax');
+      expect(expense(current, "Taxes"), 0);
     });
 
     test('no inflation changes nothing', () {

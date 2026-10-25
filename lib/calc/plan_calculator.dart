@@ -61,8 +61,7 @@ class PlanCalculator {
   /// counts as working.
   bool _isAfterRetirementAge() => age! > parameters.retirementAge;
 
-  /// One year after retirement age.
-  bool _isOneYearAfterRetirementAge() => age! > parameters.retirementAge + 1;
+  bool _isAfterIraWithdrawalAge() => age! > PlanConstants.iraWithdrawalAge;
 
   /// Whether Medicare has taken over from private health insurance.
   bool _isAfterMedicareAge() => age! > PlanConstants.medicareStartAge;
@@ -107,17 +106,8 @@ class PlanCalculator {
         next!.premiumTaxCredits = premiumTaxCredits;
       }
 
-      // Last year's taxes are part of this year's expenses, and are worth a
-      // year's inflation by the time they are paid.
-      if (_isOneYearAfterRetirementAge()) {
-        final lastYearTax = last.tax * _inflationYear;
-        if (lastYearTax > 0) {
-          next!.add(PlanColumn.expenses, "Last Year's Taxes", lastYearTax);
-        }
-      }
-
       // The premium tax credits received last year have to be paid back when
-      // last year's income passed the line above the poverty level. The bill
+      // last year's income passed above four times the poverty level. The bill
       // comes with last year's taxes, and is worth a year's inflation by the
       // time it is paid.
       final repayment = last.premiumTaxCreditRepayment * _inflationYear;
@@ -219,30 +209,9 @@ class PlanCalculator {
     }
   }
 
-  /// Withdraw from the 401(k) account to pay unpaid expenses.
-  void _payExpensesFromFourOhOneK() {
-    if (_isAfterRetirementAge()) {
-      if (next!.unpaidExpenses > 0) {
-        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.fourOhOneK));
-
-        if (withdrawalAmount > 0) {
-          next!.fourOhOneKWithdrawals += withdrawalAmount;
-
-          // Pay expenses.
-          next!.sub(PlanColumn.fourOhOneK, "Pay Expenses", withdrawalAmount);
-          next!.unpaidExpenses -= withdrawalAmount;
-
-          // 401(k) withdrawals are taxable as ordinary income.
-          next!.add(PlanColumn.income, "Withdrawal from 401(k)", withdrawalAmount);
-          next!.ordinaryIncome += withdrawalAmount;
-        }
-      }
-    }
-  }
-
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
   void _payExpensesFromTraditionalIra() {
-    if (_isAfterRetirementAge()) {
+    if (_isAfterRetirementAge() && _isAfterIraWithdrawalAge()) {
       if (next!.unpaidExpenses > 0) {
         final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
 
@@ -263,7 +232,7 @@ class PlanCalculator {
 
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
   void _payExpensesFromRothIra() {
-    if (_isAfterRetirementAge()) {
+    if (_isAfterRetirementAge() && _isAfterIraWithdrawalAge()) {
       if (next!.unpaidExpenses > 0) {
         final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
 
@@ -274,12 +243,13 @@ class PlanCalculator {
           next!.sub(PlanColumn.rothIra, "Pay Expenses", withdrawalAmount);
           next!.unpaidExpenses -= withdrawalAmount;
 
-          // Roth IRA withdrawals are not taxable.
+          // Roth IRA withdrawals are not taxable, so no need to add to income.
         }
       }
     }
   }
 
+  /// Transfer the 401(k) to a traditional IRA immediately after retirement.
   void _transferFourOhOneKToTraditionalIra() {
     if (_isAfterRetirementAge()) {
       final transferAmount = next!.totalOf(PlanColumn.fourOhOneK);
@@ -292,21 +262,19 @@ class PlanCalculator {
   }
 
   void _convertTraditionalIraToRothIra() {
-    if (_isAfterRetirementAge()) {
-      if (_isAfterRothConversionAge()) {
-        final conversionAmount = min(parameters.rothIraConversion, next!.totalOf(PlanColumn.traditionalIra));
+    if (_isAfterRetirementAge() && _isAfterRothConversionAge()) {
+      final conversionAmount = min(parameters.rothIraConversion, next!.totalOf(PlanColumn.traditionalIra));
 
-        if (conversionAmount > 0) {
-          next!.sub(PlanColumn.traditionalIra, "Convert to Roth IRA", conversionAmount);
-          next!.traditionalIraWithdrawals += conversionAmount;
+      if (conversionAmount > 0) {
+        next!.sub(PlanColumn.traditionalIra, "Convert to Roth IRA", conversionAmount);
+        next!.traditionalIraWithdrawals += conversionAmount;
 
-          // Convert to Roth IRA.
-          next!.add(PlanColumn.rothIra, "Convert from Traditional IRA", conversionAmount);
+        // Convert to Roth IRA.
+        next!.add(PlanColumn.rothIra, "Convert from Traditional IRA", conversionAmount);
 
-          // Traditional IRA withdrawals for Roth conversions are taxable as ordinary income.
-          next!.add(PlanColumn.income, "Convert to Roth IRA from Traditional IRA", conversionAmount);
-          next!.ordinaryIncome += conversionAmount;
-        }
+        // Traditional IRA withdrawals for Roth conversions are taxable as ordinary income.
+        next!.add(PlanColumn.income, "Convert to Roth IRA from Traditional IRA", conversionAmount);
+        next!.ordinaryIncome += conversionAmount;
       }
     }
   }
@@ -378,8 +346,7 @@ class PlanCalculator {
     }
   }
 
-  /// Add the taxable part of the Social Security benefits to the ordinary
-  /// income.
+  /// Add the taxable part of the Social Security benefits to ordinary income.
   ///
   /// The benefit is taxed in proportion to the income around it, so the
   /// taxable part can only be worked out once the year's income is settled.
@@ -399,7 +366,29 @@ class PlanCalculator {
   }
 
   /// Record the tax owed on this year's income. See [TaxCalculator].
-  void _calculateTax() => TaxCalculator.record(next!, TaxRules.indexed(_inflation));
+  void _calculateTax() {
+    TaxCalculator.record(next!, TaxRules.indexed(_inflation));
+
+    // Show the year's tax as a note on expenses, without adding it to them.
+    if (next!.tax > 0) {
+      next!.note(PlanColumn.expenses, "Taxes", next!.tax);
+    }
+  }
+
+  /// Withdraw this year's tax from the Roth IRA when that option is set.
+  void _payTaxesFromRothIra() {
+    if (next!.tax <= 0) return;
+
+    if (_isAfterRetirementAge()) {
+      if (parameters.payTaxesFromRothIra) {
+        final withdrawalAmount = min(next!.tax, next!.totalOf(PlanColumn.rothIra));
+        if (withdrawalAmount > 0) {
+          next!.sub(PlanColumn.rothIra, "Pay Taxes", withdrawalAmount);
+          // Roth IRA withdrawals are not taxable, so no need to add to income.
+        }
+      }
+    }
+  }
 
   /// Record the year's modified adjusted gross income, the figure the premium
   /// tax credit turns on. See [TaxCalculator.magi].
@@ -454,7 +443,6 @@ class PlanCalculator {
     //if (_isAfterRetirementAge() && !_isAfterMedicareAge()) _payExpensesFromRothIra();
 
     // Pay expenses from other account types in order.
-    _payExpensesFromFourOhOneK();
     _payExpensesFromTraditionalIra();
     _payExpensesFromRothIra();
 
@@ -473,6 +461,8 @@ class PlanCalculator {
     _taxableSocialSecurity();
 
     _calculateTax();
+    _payTaxesFromRothIra();
+
     _calculateMagi();
 
     ++_iteration;
