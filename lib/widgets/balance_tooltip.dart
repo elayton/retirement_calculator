@@ -22,8 +22,9 @@ const _tooltipGap = 36.0;
 /// total they add up to.
 class BalanceTooltip extends StatelessWidget {
   final PlanBalance balance;
+  final Color? textColor;
 
-  const BalanceTooltip({super.key, required this.balance});
+  const BalanceTooltip({super.key, required this.balance, this.textColor});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,7 @@ class BalanceTooltip extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         // Flexible so a value wider than its column paints as it always has,
         // rather than tripping a flex overflow on the way past.
-        children: [Flexible(child: Text(formatCurrency(balance.total)))],
+        children: [Flexible(child: Text(formatCurrency(balance.total), style: textColor == null ? null : TextStyle(color: textColor)))],
       ),
     );
   }

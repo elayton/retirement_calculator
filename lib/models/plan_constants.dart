@@ -23,6 +23,13 @@ abstract final class PlanConstants {
   /// its own, so the federal [standardDeduction] applies.
   static const stateIncomeTaxBrackets = <(double?, double)>[(null, 4.45)];
 
+  /// Approximate marginal federal long-term capital gains rate used when
+  /// grossing up a brokerage withdrawal that pays tax.
+  static const double federalCapitalGainsRate = 15;
+
+  /// Utah's flat income tax rate, used when grossing up a taxable withdrawal.
+  static const double stateRate = 4.45;
+
   static const socialSecurityBenefitByAge = <int, double>{62: 2860, 63: 3071, 64: 3295, 65: 3581, 66: 3868, 67: 4156, 68: 4195, 69: 4540, 70: 5192};
 
   /// The Social Security income thresholds. The benefit is untaxed below the

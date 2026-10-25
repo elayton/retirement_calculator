@@ -29,6 +29,14 @@ class PlanCalculator {
   /// are taken so the ratio of gain to withdrawal stays honest across years.
   double _brokerageCostBasis = 0;
 
+  /// The total tax paid from accounts this year, used to work out what remains
+  /// unpaid after a taxable withdrawal.
+  double _taxPaidThisYear = 0;
+
+  /// The tax rules of the current year, retained so a taxable withdrawal can
+  /// recompute the tax without re-recording it.
+  TaxRules _taxRules = TaxRules.indexed(1);
+
   /// Begin a projection from [totals], copied into the shape the per-year steps
   /// read and add to.
   PlanCalculator({required this.portfolioDate, required this.parameters, required PlanTotals totals}) {
@@ -177,106 +185,101 @@ class PlanCalculator {
 
   /// Withdraw from the brokerage account to pay unpaid expenses.
   void _payExpensesFromBrokerage() {
-    if (_isAfterRetirementAge()) {
-      if (next!.unpaidExpenses > 0) {
-        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
+    if (!_isAfterRetirementAge()) return;
+    if (next!.unpaidExpenses <= 0) return;
 
-        if (withdrawalAmount > 0) {
-          next!.brokerageWithdrawals += withdrawalAmount;
+    final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.brokerage));
+    if (withdrawalAmount <= 0) return;
 
-          // Pay expenses.
-          next!.sub(PlanColumn.brokerage, "Pay Expenses", withdrawalAmount);
-          next!.unpaidExpenses -= withdrawalAmount;
+    next!.brokerageWithdrawals += withdrawalAmount;
 
-          // Brokerage withdrawals are taxable as capital gains, adjusted for the
-          // average cost basis of the funds: only the part above the cost basis
-          // counts as a gain.
-          final totalBrokerage = next!.totalOf(PlanColumn.brokerage) + withdrawalAmount;
-          final costBasisPortion = totalBrokerage > 0
-              ? _brokerageCostBasis * withdrawalAmount / totalBrokerage
-              : 0.0;
-          // A withdrawal cannot produce a negative gain: at most the whole
-          // withdrawal is return of capital, so the gain is floored at zero.
-          final capitalGain = max(0.0, withdrawalAmount - costBasisPortion);
+    // Pay expenses.
+    next!.sub(PlanColumn.brokerage, "Pay Expenses", withdrawalAmount);
+    next!.unpaidExpenses -= withdrawalAmount;
 
-          // The cost basis leaves the account alongside the cash.
-          _brokerageCostBasis = max(0.0, _brokerageCostBasis - costBasisPortion);
+    // Brokerage withdrawals are taxable as capital gains, adjusted for the
+    // average cost basis of the funds: only the part above the cost basis
+    // counts as a gain.
+    final totalBrokerage = next!.totalOf(PlanColumn.brokerage) + withdrawalAmount;
+    final costBasisPortion = totalBrokerage > 0
+        ? _brokerageCostBasis * withdrawalAmount / totalBrokerage
+        : 0.0;
+    // A withdrawal cannot produce a negative gain: at most the whole
+    // withdrawal is return of capital, so the gain is floored at zero.
+    final capitalGain = max(0.0, withdrawalAmount - costBasisPortion);
 
-          next!.add(PlanColumn.income, "Withdrawal from Brokerage", withdrawalAmount);
-          next!.capitalGains += capitalGain;
-        }
-      }
-    }
+    // The cost basis leaves the account alongside the cash.
+    _brokerageCostBasis = max(0.0, _brokerageCostBasis - costBasisPortion);
+
+    next!.add(PlanColumn.income, "Withdrawal from Brokerage", withdrawalAmount);
+    next!.capitalGains += capitalGain;
   }
 
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
   void _payExpensesFromTraditionalIra() {
-    if (_isAfterRetirementAge() && _isAfterIraWithdrawalAge()) {
-      if (next!.unpaidExpenses > 0) {
-        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
+    if (!_isAfterRetirementAge()) return;
+    if (!_isAfterIraWithdrawalAge()) return;
+    if (next!.unpaidExpenses <= 0) return;
 
-        if (withdrawalAmount > 0) {
-          next!.traditionalIraWithdrawals += withdrawalAmount;
+    final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.traditionalIra));
+    if (withdrawalAmount <= 0) return;
 
-          // Pay expenses.
-          next!.sub(PlanColumn.traditionalIra, "Pay Expenses", withdrawalAmount);
-          next!.unpaidExpenses -= withdrawalAmount;
+    next!.traditionalIraWithdrawals += withdrawalAmount;
 
-          // Traditional IRA withdrawals are taxable as ordinary income.
-          next!.add(PlanColumn.income, "Withdrawal from Traditional IRA", withdrawalAmount);
-          next!.ordinaryIncome += withdrawalAmount;
-        }
-      }
-    }
+    // Pay expenses.
+    next!.sub(PlanColumn.traditionalIra, "Pay Expenses", withdrawalAmount);
+    next!.unpaidExpenses -= withdrawalAmount;
+
+    // Traditional IRA withdrawals are taxable as ordinary income.
+    next!.add(PlanColumn.income, "Withdrawal from Traditional IRA", withdrawalAmount);
+    next!.ordinaryIncome += withdrawalAmount;
   }
 
   /// Withdraw from the traditional IRA account to pay unpaid expenses.
   void _payExpensesFromRothIra() {
-    if (_isAfterRetirementAge() && _isAfterIraWithdrawalAge()) {
-      if (next!.unpaidExpenses > 0) {
-        final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
+    if (!_isAfterRetirementAge()) return;
+    if (!_isAfterIraWithdrawalAge()) return;
+    if (next!.unpaidExpenses <= 0) return;
 
-        if (withdrawalAmount > 0) {
-          next!.rothIraWithdrawals += withdrawalAmount;
+    final withdrawalAmount = min(next!.unpaidExpenses, next!.totalOf(PlanColumn.rothIra));
+    if (withdrawalAmount <= 0) return;
 
-          // Pay expenses.
-          next!.sub(PlanColumn.rothIra, "Pay Expenses", withdrawalAmount);
-          next!.unpaidExpenses -= withdrawalAmount;
+    next!.rothIraWithdrawals += withdrawalAmount;
 
-          // Roth IRA withdrawals are not taxable, so no need to add to income.
-        }
-      }
-    }
+    // Pay expenses.
+    next!.sub(PlanColumn.rothIra, "Pay Expenses", withdrawalAmount);
+    next!.unpaidExpenses -= withdrawalAmount;
+
+    // Roth IRA withdrawals are not taxable, so no need to add to income.
   }
 
   /// Transfer the 401(k) to a traditional IRA immediately after retirement.
   void _transferFourOhOneKToTraditionalIra() {
-    if (_isAfterRetirementAge()) {
-      final transferAmount = next!.totalOf(PlanColumn.fourOhOneK);
+    if (!_isAfterRetirementAge()) return;
 
-      if (transferAmount > 0) {
-        next!.sub(PlanColumn.fourOhOneK, "Transfer to Traditional IRA", transferAmount);
-        next!.add(PlanColumn.traditionalIra, "Transfer from 401(k)", transferAmount);
-      }
-    }
+    final transferAmount = next!.totalOf(PlanColumn.fourOhOneK);
+    if (transferAmount <= 0) return;
+
+    next!.sub(PlanColumn.fourOhOneK, "Transfer to Traditional IRA", transferAmount);
+    next!.add(PlanColumn.traditionalIra, "Transfer from 401(k)", transferAmount);
   }
 
   void _convertTraditionalIraToRothIra() {
-    if (_isAfterRetirementAge() && _isAfterRothConversionAge()) {
-      final conversionAmount = min(parameters.rothIraConversion, next!.totalOf(PlanColumn.traditionalIra));
+    if (!_isAfterRetirementAge()) return;
+    if (!_isAfterRothConversionAge()) return;
 
-      if (conversionAmount > 0) {
-        next!.sub(PlanColumn.traditionalIra, "Convert to Roth IRA", conversionAmount);
-        next!.traditionalIraWithdrawals += conversionAmount;
+    final conversionAmount = min(parameters.rothIraConversion, next!.totalOf(PlanColumn.traditionalIra));
+    if (conversionAmount <= 0) return;
 
-        // Convert to Roth IRA.
-        next!.add(PlanColumn.rothIra, "Convert from Traditional IRA", conversionAmount);
+    next!.sub(PlanColumn.traditionalIra, "Convert to Roth IRA", conversionAmount);
+    next!.traditionalIraWithdrawals += conversionAmount;
 
-        // Traditional IRA withdrawals for Roth conversions are taxable as ordinary income.
-        next!.add(PlanColumn.income, "Convert to Roth IRA from Traditional IRA", conversionAmount);
-        next!.ordinaryIncome += conversionAmount;
-      }
-    }
+    // Convert to Roth IRA.
+    next!.add(PlanColumn.rothIra, "Convert from Traditional IRA", conversionAmount);
+
+    // Traditional IRA withdrawals for Roth conversions are taxable as ordinary income.
+    next!.add(PlanColumn.income, "Convert to Roth IRA from Traditional IRA", conversionAmount);
+    next!.ordinaryIncome += conversionAmount;
   }
 
   /// Add a year of growth to the cash balance.
@@ -367,27 +370,129 @@ class PlanCalculator {
 
   /// Record the tax owed on this year's income. See [TaxCalculator].
   void _calculateTax() {
-    TaxCalculator.record(next!, TaxRules.indexed(_inflation));
+    _taxRules = TaxRules.indexed(_inflation);
+    TaxCalculator.record(next!, _taxRules);
+
+    if (!_isAfterRetirementAge()) {
+      // Tax before retirement is paid from salary.
+      next!.unpaidTaxes = 0;
+    }
 
     // Show the year's tax as a note on expenses, without adding it to them.
     if (next!.tax > 0) {
       next!.note(PlanColumn.expenses, "Taxes", next!.tax);
     }
+
+    // The part of the year's expenses that remains unpaid after income and
+    // withdrawals have been applied.
+    next!.note(PlanColumn.expenses, "Unpaid Expenses", next!.unpaidExpenses);
+  }
+
+  /// Clamp a near-zero amount to zero.
+  double _clampToZero(double amount) {
+    return (amount < 1e-9 ? 0 : amount);
+  }
+
+  /// Withdraw this year's tax from the brokerage account when that option is set.
+  ///
+  /// A brokerage withdrawal is itself taxable, so the amount taken out has to
+  /// cover the tax on the withdrawal as well as the tax owed.
+  void _payTaxesFromBrokerage() {
+    if (!parameters.payTaxesFromBrokerage) return;
+    if (next!.unpaidTaxes <= 0) return;
+    if (!_isAfterRetirementAge()) return;
+
+    final balance = next!.totalOf(PlanColumn.brokerage);
+    if (balance <= 0) return;
+
+    final costBasisRatio = balance > 0 ? _brokerageCostBasis / balance : 0.0;
+    final gainRatio = (1 - costBasisRatio).clamp(0.0, 1.0);
+
+    // An approximate marginal rate on the gain portion of the withdrawal: the
+    // federal capital gains rate plus the state rate.
+    final netFactor = 1 - gainRatio * (PlanConstants.federalCapitalGainsRate + PlanConstants.stateRate) / 100;
+    if (netFactor <= 0) return;
+
+    var withdrawalAmount = next!.unpaidTaxes / netFactor;
+    if (withdrawalAmount > balance) withdrawalAmount = balance;
+    if (withdrawalAmount <= 0) return;
+
+    next!.brokerageWithdrawals += withdrawalAmount;
+
+    final totalBrokerage = next!.totalOf(PlanColumn.brokerage) + withdrawalAmount;
+    final costBasisPortion = totalBrokerage > 0
+        ? _brokerageCostBasis * withdrawalAmount / totalBrokerage
+        : 0.0;
+    _brokerageCostBasis = max(0.0, _brokerageCostBasis - costBasisPortion);
+    final capitalGain = max(0.0, withdrawalAmount - costBasisPortion);
+
+    next!.sub(PlanColumn.brokerage, "Pay Taxes", withdrawalAmount);
+    next!.add(PlanColumn.income, "Withdrawal from Brokerage (Tax)", withdrawalAmount);
+    next!.capitalGains += capitalGain;
+
+    _taxPaidThisYear += withdrawalAmount;
+
+    // The withdrawal is taxable, so recompute the tax and what remains unpaid.
+    final brokerageAgi = next!.ordinaryIncome - next!.agiDeductions;
+    final brokerageFederal = TaxCalculator.federal(_taxRules, brokerageAgi, next!.capitalGains);
+    final brokerageState = TaxCalculator.state(_taxRules, brokerageAgi, next!.capitalGains);
+    next!.tax = brokerageFederal.tax + brokerageState;
+    next!.taxBracket = brokerageFederal.topRate;
+    next!.unpaidTaxes = _clampToZero(max(0.0, next!.tax - _taxPaidThisYear));
+  }
+
+  /// Withdraw this year's tax from the traditional IRA when that option is set.
+  ///
+  /// A traditional IRA withdrawal is taxed as ordinary income, so the amount
+  /// taken out has to cover the tax on the withdrawal as well.
+  void _payTaxesFromTraditionalIra() {
+    if (!parameters.payTaxesFromTraditionalIra) return;
+    if (next!.unpaidTaxes <= 0) return;
+    if (!_isAfterRetirementAge()) return;
+
+    final balance = next!.totalOf(PlanColumn.traditionalIra);
+    if (balance <= 0) return;
+
+    final marginalFederalRate = parameters.traditionalIraTaxRate;
+    final netFactor = 1 - (marginalFederalRate + PlanConstants.stateRate) / 100;
+    if (netFactor <= 0) return;
+
+    var withdrawalAmount = next!.unpaidTaxes / netFactor;
+    if (withdrawalAmount > balance) withdrawalAmount = balance;
+    if (withdrawalAmount <= 0) return;
+
+    next!.traditionalIraWithdrawals += withdrawalAmount;
+
+    next!.sub(PlanColumn.traditionalIra, "Pay Taxes", withdrawalAmount);
+    next!.add(PlanColumn.income, "Withdrawal from Traditional IRA (Tax)", withdrawalAmount);
+    next!.ordinaryIncome += withdrawalAmount;
+
+    _taxPaidThisYear += withdrawalAmount;
+
+    final traditionalAgi = next!.ordinaryIncome - next!.agiDeductions;
+    final traditionalFederal = TaxCalculator.federal(_taxRules, traditionalAgi, next!.capitalGains);
+    final traditionalState = TaxCalculator.state(_taxRules, traditionalAgi, next!.capitalGains);
+    next!.tax = traditionalFederal.tax + traditionalState;
+    next!.taxBracket = traditionalFederal.topRate;
+    next!.unpaidTaxes = _clampToZero(max(0.0, next!.tax - _taxPaidThisYear));
   }
 
   /// Withdraw this year's tax from the Roth IRA when that option is set.
   void _payTaxesFromRothIra() {
-    if (next!.tax <= 0) return;
+    if (!parameters.payTaxesFromRothIra) return;
+    if (next!.unpaidTaxes <= 0) return;
+    if (!_isAfterRetirementAge()) return;
 
-    if (_isAfterRetirementAge()) {
-      if (parameters.payTaxesFromRothIra) {
-        final withdrawalAmount = min(next!.tax, next!.totalOf(PlanColumn.rothIra));
-        if (withdrawalAmount > 0) {
-          next!.sub(PlanColumn.rothIra, "Pay Taxes", withdrawalAmount);
-          // Roth IRA withdrawals are not taxable, so no need to add to income.
-        }
-      }
-    }
+    final balance = next!.totalOf(PlanColumn.rothIra);
+    if (balance <= 0) return;
+
+    final withdrawalAmount = min(next!.unpaidTaxes, balance);
+    if (withdrawalAmount <= 0) return;
+
+    next!.sub(PlanColumn.rothIra, "Pay Taxes", withdrawalAmount);
+    _taxPaidThisYear += withdrawalAmount;
+    next!.unpaidTaxes = _clampToZero(max(0.0, next!.tax - _taxPaidThisYear));
+    // Roth IRA withdrawals are not taxable, so no need to add to income.
   }
 
   /// Record the year's modified adjusted gross income, the figure the premium
@@ -426,6 +531,7 @@ class PlanCalculator {
   /// Advance the account totals by one year and return the new totals.
   PlanTotals calculateNext(int age) {
     this.age = age;
+    _taxPaidThisYear = 0;
     next = PlanTotals.fromPlanTotals(last);
 
     _setExpenses();
@@ -461,7 +567,12 @@ class PlanCalculator {
     _taxableSocialSecurity();
 
     _calculateTax();
+    _payTaxesFromBrokerage();
+    _payTaxesFromTraditionalIra();
     _payTaxesFromRothIra();
+
+    // The tax that remains unpaid this year, after any payment from the accounts.
+    next!.note(PlanColumn.tax, "Unpaid Taxes", next!.unpaidTaxes);
 
     _calculateMagi();
 

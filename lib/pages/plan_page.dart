@@ -89,10 +89,20 @@ class _PlanPageState extends State<PlanPage> {
   /// One cell of the projection table. Every column but the bracket holds a
   /// balance and so opens a breakdown on hover.
   Widget _cell(PlanColumn column, PlanTotals totals) => switch (column) {
+    PlanColumn.expenses when totals.unpaidExpenses > 0 => BalanceTooltip(
+        balance: totals.balanceOf(column),
+        textColor: Colors.red,
+      ),
     PlanColumn.taxBracket => rightAlign(Text(formatPercent(totals.taxBracket))),
+    PlanColumn.tax when totals.unpaidTaxes > 0 => BalanceTooltip(
+        balance: totals.balanceOf(column),
+        textColor: Colors.red,
+      ),
     PlanColumn.tax => BalanceTooltip(balance: totals.balanceOf(column)),
     _ => BalanceTooltip(balance: totals.balanceOf(column)),
   };
+
+  Widget _tableCell(PlanColumn column, PlanTotals totals) => tableCell(_cell(column, totals));
 
   /// The per-age projection table.
   Widget _planTable(BuildContext context, List<PlanColumn> columns, List<(int, PlanTotals)> rows, PlanParameters parameters) {
@@ -127,7 +137,7 @@ class _PlanPageState extends State<PlanPage> {
                   ? Border(bottom: BorderSide(width: 1, color: Theme.of(context).colorScheme.outline))
                   : null,
             ),
-            children: [tableCell(Text('${row.$1}')), for (final c in columns) tableCell(_cell(c, row.$2))],
+            children: [tableCell(Text('${row.$1}')), for (final c in columns) _tableCell(c, row.$2)],
           ),
       ],
     );

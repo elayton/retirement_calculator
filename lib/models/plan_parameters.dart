@@ -24,8 +24,11 @@ class PlanParameters {
   double hsaInvestmentThreshold = 2500;
   double hsaGrowthRate = 4;
   double downMarketRate = -50;
+  double traditionalIraTaxRate = 22;
   double brokerageContributions = 0;
   double rothIraContributions = 0;
   double rothIraConversion = 100000;
+  bool payTaxesFromBrokerage = false;
+  bool payTaxesFromTraditionalIra = false;
   bool payTaxesFromRothIra = true;
 }

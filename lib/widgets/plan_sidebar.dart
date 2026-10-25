@@ -352,6 +352,50 @@ class PlanSidebar extends StatelessWidget {
       children: [
         Row(
           children: [
+            const Expanded(child: Text('Pay Taxes from Brokerage')),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Transform.translate(
+                offset: const Offset(3, 0),
+                child: Transform.scale(
+                  scale: 0.7,
+                  child: Switch(
+                    value: parameters.payTaxesFromBrokerage,
+                    padding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      parameters.payTaxesFromBrokerage = value;
+                      onChanged();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            const Expanded(child: Text('Pay Taxes from Traditional IRA')),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Transform.translate(
+                offset: const Offset(3, 0),
+                child: Transform.scale(
+                  scale: 0.7,
+                  child: Switch(
+                    value: parameters.payTaxesFromTraditionalIra,
+                    padding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      parameters.payTaxesFromTraditionalIra = value;
+                      onChanged();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
             const Expanded(child: Text('Pay Taxes from Roth IRA')),
             Align(
               alignment: Alignment.centerRight,

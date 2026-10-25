@@ -20,6 +20,11 @@ abstract final class TaxCalculator {
     return (ordinaryTaxable: ordinaryTaxable, gainsTaxable: totalTaxable - ordinaryTaxable, stackTop: totalTaxable);
   }
 
+  /// Clamp a near-zero amount to zero.
+  static double _clampToZero(double amount) {
+    return (amount < 1e-9 ? 0 : amount);
+  }
+
   /// The taxable part of the Social Security benefits, per the worksheet in
   /// Publication 915.
   ///
@@ -155,6 +160,7 @@ abstract final class TaxCalculator {
 
     totals.tax = federalTax.tax + stateTax;
     totals.taxBracket = federalTax.topRate;
+    totals.unpaidTaxes = _clampToZero(totals.tax);
 
     if (federalTax.tax > 0) totals.add(PlanColumn.tax, "Federal Tax", federalTax.tax);
     if (stateTax > 0) totals.add(PlanColumn.tax, "Utah Tax", stateTax);

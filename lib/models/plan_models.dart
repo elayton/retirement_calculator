@@ -77,6 +77,7 @@ class PlanTotals {
   double capitalGains = 0;
 
   double unpaidExpenses = 0;
+  double unpaidTaxes = 0;
 
   double brokerageWithdrawals = 0;
   double fourOhOneKWithdrawals = 0;
