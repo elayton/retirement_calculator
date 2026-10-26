@@ -15,7 +15,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Downturns', 'Options'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Downturns', 'Taxes'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -54,7 +54,7 @@ class PlanSidebar extends StatelessWidget {
       'Salary' => [_salaryFields(context)],
       'Growth' => [_growthFields(context)],
       'Downturns' => [_downturnFields(context)],
-      'Options' => [_optionsFields(context)],
+      'Taxes' => [_optionsFields(context)],
       _ => null,
     };
   }

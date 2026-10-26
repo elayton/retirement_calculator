@@ -40,9 +40,10 @@ class _PlanPageState extends State<PlanPage> {
     final rows = <(int, PlanTotals)>[];
     var age = DateTime.now().year - PlanConstants.birthday.year;
 
-    while (age++ < PlanConstants.longevityAge) {
+    while (age < PlanConstants.longevityAge) {
       totals = calculator.calculateNext(age);
       rows.add((age, totals));
+      ++age;
     }
 
     return LayoutBuilder(
