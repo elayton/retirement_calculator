@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import '../models/plan_constants.dart';
-import '../models/plan_models.dart';
 import 'tax_rules.dart';
 
 /// Federal and Utah income tax on a year of income. The federal return is
@@ -18,11 +17,6 @@ abstract final class TaxCalculator {
     final totalTaxable = max(0.0, agi + capitalGains - rules.standardDeduction);
 
     return (ordinaryTaxable: ordinaryTaxable, gainsTaxable: totalTaxable - ordinaryTaxable, stackTop: totalTaxable);
-  }
-
-  /// Clamp a near-zero amount to zero.
-  static double _clampToZero(double amount) {
-    return (amount < 1e-9 ? 0 : amount);
   }
 
   /// The taxable part of the Social Security benefits, per the worksheet in
@@ -141,31 +135,42 @@ abstract final class TaxCalculator {
   }) =>
       ordinaryIncome + capitalGains - agiDeductions + taxExemptSocialSecurity;
 
-  /// Record the tax owed on [totals]'s year of income: the tax as the column's
-  /// total, its two parts as the lines above it, and the headroom to the next
-  /// federal band as notes.
+  /// The notes for the year's tax column: the income each part of the tax was
+  /// computed from, and the headroom to the next federal band as the lines above
+  /// it.
   ///
-  /// [rules] are the tax rules of the year, with the indexed amounts scaled
-  /// for the year's inflation.
-  static void record(PlanTotals totals, TaxRules rules) {
-    // The income the tax is computed on is the adjusted gross income: the
-    // ordinary income less the deductions the plan counts it gross of.
-    final agi = totals.ordinaryIncome - totals.agiDeductions;
+  /// The plan records these against its totals; the calculator only works out
+  /// what they should say. [agi] is the adjusted gross income the tax is worked
+  /// out on, and [capitalGains] the gains the year produced, both with the
+  /// indexed amounts of [rules] for the year's inflation.
+  static List<(String description, double? amount)> taxNotes(TaxRules rules, double agi, double capitalGains) {
+    final notes = <(String, double?)>[];
 
-    if (agi > 0) totals.note(PlanColumn.tax, "From Ordinary Income", agi);
-    if (totals.capitalGains > 0) totals.note(PlanColumn.tax, "From Capital Gains", totals.capitalGains);
+    if (agi > 0) notes.add(("From Ordinary Income", agi));
+    if (capitalGains > 0) notes.add(("From Capital Gains", capitalGains));
 
-    final federalTax = federal(rules, agi, totals.capitalGains);
-    final stateTax = state(rules, agi, totals.capitalGains);
+    final stack = _stack(rules, agi, capitalGains);
 
-    totals.tax = federalTax.tax + stateTax;
-    totals.taxBracket = federalTax.topRate;
-    totals.unpaidTaxes = _clampToZero(totals.tax);
+    void noteHeadroom(List<(double?, double)> brackets, double position, String description, String atTopDescription) {
+      if (position <= 0) return;
 
-    if (federalTax.tax > 0) totals.add(PlanColumn.tax, "Federal Tax", federalTax.tax);
-    if (stateTax > 0) totals.add(PlanColumn.tax, "Utah Tax", stateTax);
+      final headroom = _headroomToNextBand(position, brackets);
+      if (headroom != null) {
+        notes.add((description, headroom));
+      } else if (_inTopBand(position, brackets)) {
+        notes.add((atTopDescription, null));
+      }
+    }
 
-    _noteHeadroom(totals, rules, agi, totals.capitalGains);
+    noteHeadroom(rules.ordinaryIncomeBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
+    noteHeadroom(
+      rules.capitalGainsTaxBrackets,
+      stack.gainsTaxable > 0 ? stack.stackTop : 0,
+      'Income to next capital gains bracket',
+      'Top capital gains bracket already',
+    );
+
+    return notes;
   }
 
   /// How much further [position] could go before the band above it starts, or
@@ -195,29 +200,4 @@ abstract final class TaxCalculator {
     return false;
   }
 
-  /// Note how much further each layer of the federal stack could go before the
-  /// band above it starts. Gains sit on top of the whole stack, so either kind
-  /// of income counts toward them; a layer with nothing in it gets no note.
-  static void _noteHeadroom(PlanTotals totals, TaxRules rules, double agi, double capitalGains) {
-    final stack = _stack(rules, agi, capitalGains);
-
-    void note(List<(double?, double)> brackets, double position, String description, String atTopDescription) {
-      if (position <= 0) return;
-
-      final headroom = _headroomToNextBand(position, brackets);
-      if (headroom != null) {
-        totals.note(PlanColumn.tax, description, headroom);
-      } else if (_inTopBand(position, brackets)) {
-        totals.note(PlanColumn.tax, atTopDescription);
-      }
-    }
-
-    note(rules.ordinaryIncomeBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
-    note(
-      rules.capitalGainsTaxBrackets,
-      stack.gainsTaxable > 0 ? stack.stackTop : 0,
-      'Income to next capital gains bracket',
-      'Top capital gains bracket already',
-    );
-  }
 }

@@ -371,7 +371,23 @@ class PlanCalculator {
   /// Record the tax owed on this year's income. See [TaxCalculator].
   void _calculateTax() {
     _taxRules = TaxRules.indexed(_inflation);
-    TaxCalculator.record(next!, _taxRules);
+
+    // The income the tax is computed on is the adjusted gross income: the
+    // ordinary income less the deductions the plan counts it gross of.
+    final agi = next!.ordinaryIncome - next!.agiDeductions;
+    final federalTax = TaxCalculator.federal(_taxRules, agi, next!.capitalGains);
+    final stateTax = TaxCalculator.state(_taxRules, agi, next!.capitalGains);
+
+    next!.tax = federalTax.tax + stateTax;
+    next!.taxBracket = federalTax.topRate;
+    next!.unpaidTaxes = _clampToZero(next!.tax);
+
+    if (federalTax.tax > 0) next!.add(PlanColumn.tax, "Federal Tax", federalTax.tax);
+    if (stateTax > 0) next!.add(PlanColumn.tax, "Utah Tax", stateTax);
+
+    for (final (description, amount) in TaxCalculator.taxNotes(_taxRules, agi, next!.capitalGains)) {
+      next!.note(PlanColumn.tax, description, amount);
+    }
 
     if (!_isAfterRetirementAge()) {
       // Tax before retirement is paid from salary.
