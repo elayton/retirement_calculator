@@ -382,10 +382,6 @@ class PlanCalculator {
     if (next!.tax > 0) {
       next!.note(PlanColumn.expenses, "Taxes", next!.tax);
     }
-
-    // The part of the year's expenses that remains unpaid after income and
-    // withdrawals have been applied.
-    next!.note(PlanColumn.expenses, "Unpaid Expenses", next!.unpaidExpenses);
   }
 
   /// Clamp a near-zero amount to zero.
@@ -528,6 +524,17 @@ class PlanCalculator {
     }
   }
 
+  void _unpaidExpenses() {
+    // The part of the year's expenses that remains unpaid after income and
+    // withdrawals have been applied.
+    next!.note(PlanColumn.expenses, "Unpaid Expenses", next!.unpaidExpenses);
+  }
+
+  void _unpaidTaxes() {
+    // The tax that remains unpaid this year, after any payment from the accounts.
+    next!.note(PlanColumn.tax, "Unpaid Taxes", next!.unpaidTaxes);
+  }
+
   /// Advance the account totals by one year and return the new totals.
   PlanTotals calculateNext(int age) {
     this.age = age;
@@ -541,14 +548,8 @@ class PlanCalculator {
     _contributeTo401k();
     _contributeToHsa();
 
-    // Pay expenses from brokerage.
     _payExpensesFromBrokerage();
-    
-    // If we are retired and not on medicare yet, pay expenses from Roth IRA
-    // to lower MAGI.
-    //if (_isAfterRetirementAge() && !_isAfterMedicareAge()) _payExpensesFromRothIra();
-
-    // Pay expenses from other account types in order.
+    if (!_isAfterMedicareAge()) _payExpensesFromRothIra();
     _payExpensesFromTraditionalIra();
     _payExpensesFromRothIra();
 
@@ -571,10 +572,10 @@ class PlanCalculator {
     _payTaxesFromTraditionalIra();
     _payTaxesFromRothIra();
 
-    // The tax that remains unpaid this year, after any payment from the accounts.
-    next!.note(PlanColumn.tax, "Unpaid Taxes", next!.unpaidTaxes);
-
     _calculateMagi();
+
+    _unpaidExpenses();
+    _unpaidTaxes();
 
     ++_iteration;
 
