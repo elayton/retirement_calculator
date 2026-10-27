@@ -4,21 +4,6 @@ import 'package:intl/intl.dart';
 import '../models/portfolio_models.dart';
 import '../utils/formatting.dart';
 
-/// Maps the raw "Type" column values from a Fidelity "Full View" export to
-/// the app's [PortfolioAccountType].
-const _accountTypeByValue = <String, PortfolioAccountType>{
-  'cash': PortfolioAccountType.cash,
-  'qualifiedretirement': PortfolioAccountType.traditionalIra,
-  'taxableinvestments': PortfolioAccountType.brokerage,
-  'WPS': PortfolioAccountType.fourOhOneK,
-  'hsa': PortfolioAccountType.hsa,
-  'annuities': PortfolioAccountType.annuity,
-  'rothira': PortfolioAccountType.rothIra,
-  '529plans': PortfolioAccountType.fiveTwoNinePlan,
-  'CreditCard': PortfolioAccountType.creditCard,
-  'Other': PortfolioAccountType.other,
-};
-
 PortfolioAccountType _accountType(String type, String name) {
   final lowerName = name.toLowerCase();
 
