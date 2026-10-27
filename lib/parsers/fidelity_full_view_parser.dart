@@ -11,7 +11,6 @@ const _accountTypeByValue = <String, PortfolioAccountType>{
   'qualifiedretirement': PortfolioAccountType.traditionalIra,
   'taxableinvestments': PortfolioAccountType.brokerage,
   'WPS': PortfolioAccountType.fourOhOneK,
-  'Brokerage': PortfolioAccountType.traditionalIra,
   'hsa': PortfolioAccountType.hsa,
   'annuities': PortfolioAccountType.annuity,
   'rothira': PortfolioAccountType.rothIra,
@@ -20,7 +19,29 @@ const _accountTypeByValue = <String, PortfolioAccountType>{
   'Other': PortfolioAccountType.other,
 };
 
-PortfolioAccountType _accountTypeFromValue(String value) => _accountTypeByValue[value] ?? PortfolioAccountType.unknown;
+PortfolioAccountType _accountType(String type, String name) {
+  final lowerName = name.toLowerCase();
+
+  return switch (type) {
+    'cash' => PortfolioAccountType.cash,
+    'qualifiedretirement' => PortfolioAccountType.traditionalIra,
+    'taxableinvestments' => PortfolioAccountType.brokerage,
+    'WPS' => PortfolioAccountType.fourOhOneK,
+    'hsa' => PortfolioAccountType.hsa,
+    'annuities' => PortfolioAccountType.annuity,
+    'rothira' => PortfolioAccountType.rothIra,
+    '529plans' => PortfolioAccountType.fiveTwoNinePlan,
+    'CreditCard' => PortfolioAccountType.creditCard,
+    'Other' => PortfolioAccountType.other,
+    'Brokerage' => switch (lowerName) {
+        _ when lowerName.contains('ira') => lowerName.contains('roth')
+          ? PortfolioAccountType.rothIra
+          : PortfolioAccountType.traditionalIra,
+        _ => PortfolioAccountType.brokerage,
+      },
+    _ => PortfolioAccountType.unknown,
+  };
+}
 
 /// Parses Fidelity "Full View" portfolio export files.
 ///
@@ -52,17 +73,17 @@ Portfolio parseFidelityFullView(String csv, {String type = 'Fidelity Full View',
     final fields = row.map((f) => f.toString().trim()).toList();
     if (fields.length < 7) continue;
 
-    final typeName = fields[0].trim();
+    final type = fields[0].trim();
     final name = fields[2].trim();
     final institution = fields[3].trim();
     final balance = _parseBalance(fields[4]);
     final updated = _parseDate(fields[5]);
 
     // Ignore rows with missing fields.
-    if (typeName.isEmpty || name.isEmpty || institution.isEmpty) continue;
+    if (type.isEmpty || name.isEmpty || institution.isEmpty) continue;
     if (balance == null || updated == null) continue;
 
-    accounts.add(PortfolioAccount(type: _accountTypeFromValue(typeName), name: name, institution: institution, balance: balance, updated: updated));
+    accounts.add(PortfolioAccount(type: _accountType(type, name), name: name, institution: institution, balance: balance, updated: updated));
   }
 
   // Prefer the in-file date; fall back to the account dates.
