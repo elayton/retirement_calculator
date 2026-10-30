@@ -12,7 +12,7 @@ abstract final class TaxCalculator {
 
   /// The three layers of a year's taxable income: the standard deduction
   /// shelters the bottom, then ordinary income, then gains.
-  static ({double ordinaryTaxable, double gainsTaxable, double stackTop}) _stack(TaxRules rules, double agi, double capitalGains) {
+  static ({double ordinaryTaxable, double gainsTaxable, double stackTop}) stack(TaxRules rules, double agi, double capitalGains) {
     final ordinaryTaxable = max(0.0, agi - rules.standardDeduction);
     final totalTaxable = max(0.0, agi + capitalGains - rules.standardDeduction);
 
@@ -79,9 +79,11 @@ abstract final class TaxCalculator {
 
   /// Federal income tax on [agi] and [capitalGains], with the topmost
   /// marginal rate reached. Gains occupy whatever room ordinary income left.
-  static ({double tax, double topRate}) federal(TaxRules rules, double agi, double capitalGains) {
-    final stack = _stack(rules, agi, capitalGains);
-
+  ///
+  /// The layers of taxable income come in as [stack], so the caller can hand
+  /// over one already worked out for the year's income rather than recompute
+  /// it.
+  static ({double tax, double topRate}) federal(TaxRules rules, double agi, double capitalGains, ({double ordinaryTaxable, double gainsTaxable, double stackTop}) stack) {
     final (ordinaryTax, ordinaryTopRate) = _walk(stack.ordinaryTaxable, rules.ordinaryIncomeBrackets);
 
     // The gains bands are indexed against the top of the whole stack, so a band
@@ -134,70 +136,5 @@ abstract final class TaxCalculator {
     required double taxExemptSocialSecurity,
   }) =>
       ordinaryIncome + capitalGains - agiDeductions + taxExemptSocialSecurity;
-
-  /// The notes for the year's tax column: the income each part of the tax was
-  /// computed from, and the headroom to the next federal band as the lines above
-  /// it.
-  ///
-  /// The plan records these against its totals; the calculator only works out
-  /// what they should say. [agi] is the adjusted gross income the tax is worked
-  /// out on, and [capitalGains] the gains the year produced, both with the
-  /// indexed amounts of [rules] for the year's inflation.
-  static List<(String description, double? amount)> taxNotes(TaxRules rules, double agi, double capitalGains) {
-    final notes = <(String, double?)>[];
-
-    if (agi > 0) notes.add(("From Ordinary Income", agi));
-    if (capitalGains > 0) notes.add(("From Capital Gains", capitalGains));
-
-    final stack = _stack(rules, agi, capitalGains);
-
-    void noteHeadroom(List<(double?, double)> brackets, double position, String description, String atTopDescription) {
-      if (position <= 0) return;
-
-      final headroom = _headroomToNextBand(position, brackets);
-      if (headroom != null) {
-        notes.add((description, headroom));
-      } else if (_inTopBand(position, brackets)) {
-        notes.add((atTopDescription, null));
-      }
-    }
-
-    noteHeadroom(rules.ordinaryIncomeBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
-    noteHeadroom(
-      rules.capitalGainsTaxBrackets,
-      stack.gainsTaxable > 0 ? stack.stackTop : 0,
-      'Income to next capital gains bracket',
-      'Top capital gains bracket already',
-    );
-
-    return notes;
-  }
-
-  /// How much further [position] could go before the band above it starts, or
-  /// null in the uncapped top band, which has nothing above it.
-  static double? _headroomToNextBand(double position, List<(double?, double)> brackets) {
-    if (position <= 0) return null;
-
-    for (final (upperBound, _) in brackets) {
-      if (upperBound == null) return null;
-      if (position < upperBound) return upperBound - position;
-    }
-
-    return null;
-  }
-
-  /// Whether [position] has reached the uncapped top band, where there is no
-  /// further headroom to report.
-  static bool _inTopBand(double position, List<(double?, double)> brackets) {
-    if (position <= 0) return false;
-
-    var lower = 0.0;
-    for (final (upperBound, _) in brackets) {
-      if (upperBound == null) return position >= lower;
-      lower = upperBound;
-    }
-
-    return false;
-  }
 
 }

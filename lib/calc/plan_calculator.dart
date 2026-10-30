@@ -368,14 +368,79 @@ class PlanCalculator {
     next!.ordinaryIncome += taxable;
   }
 
-  /// Record the tax owed on this year's income. See [TaxCalculator].
+  /// The notes for the year's tax column: the income each part of the tax was
+  /// computed from, and the headroom to the next federal band as the lines above
+  /// it.
+  ///
+  /// The plan records these against its totals; the calculator only works out
+  /// what they should say. [agi] is the adjusted gross income the tax is worked
+  /// out on, and [capitalGains] the gains the year produced, both with the
+  /// indexed amounts of [rules] for the year's inflation.
+  List<(String description, double? amount)> _addTaxNotes(TaxRules rules, double agi, double capitalGains, ({double ordinaryTaxable, double gainsTaxable, double stackTop}) stack) {
+    final notes = <(String, double?)>[];
+
+    if (agi > 0) notes.add(("From Ordinary Income", agi));
+    if (capitalGains > 0) notes.add(("From Capital Gains", capitalGains));
+
+    void noteHeadroom(List<(double?, double)> brackets, double position, String description, String atTopDescription) {
+      if (position <= 0) return;
+
+      final headroom = _headroomToNextBand(position, brackets);
+      if (headroom != null) {
+        notes.add((description, headroom));
+      } else if (_inTopBand(position, brackets)) {
+        notes.add((atTopDescription, null));
+      }
+    }
+
+    noteHeadroom(rules.ordinaryIncomeBrackets, stack.ordinaryTaxable, 'Ordinary income to next federal bracket', 'Top federal bracket already');
+    noteHeadroom(
+      rules.capitalGainsTaxBrackets,
+      stack.gainsTaxable > 0 ? stack.stackTop : 0,
+      'Income to next capital gains bracket',
+      'Top capital gains bracket already',
+    );
+
+    return notes;
+  }
+
+  /// How much further [position] could go before the band above it starts, or
+  /// null in the uncapped top band, which has nothing above it.
+  double? _headroomToNextBand(double position, List<(double?, double)> brackets) {
+    if (position <= 0) return null;
+
+    for (final (upperBound, _) in brackets) {
+      if (upperBound == null) return null;
+      if (position < upperBound) return upperBound - position;
+    }
+
+    return null;
+  }
+
+  /// Whether [position] has reached the uncapped top band, where there is no
+  /// further headroom to report.
+  bool _inTopBand(double position, List<(double?, double)> brackets) {
+    if (position <= 0) return false;
+
+    var lower = 0.0;
+    for (final (upperBound, _) in brackets) {
+      if (upperBound == null) return position >= lower;
+      lower = upperBound;
+    }
+
+    return false;
+  }
+
+  /// Record the tax owed on this year's income, and the notes that explain
+  /// the income each part of it was worked out from. See [TaxCalculator].
   void _calculateTax() {
     _taxRules = TaxRules.indexed(_inflation);
 
     // The income the tax is computed on is the adjusted gross income: the
     // ordinary income less the deductions the plan counts it gross of.
     final agi = next!.ordinaryIncome - next!.agiDeductions;
-    final federalTax = TaxCalculator.federal(_taxRules, agi, next!.capitalGains);
+    final stack = TaxCalculator.stack(_taxRules, agi, next!.capitalGains);
+    final federalTax = TaxCalculator.federal(_taxRules, agi, next!.capitalGains, stack);
     final stateTax = TaxCalculator.state(_taxRules, agi, next!.capitalGains);
 
     next!.tax = federalTax.tax + stateTax;
@@ -385,7 +450,7 @@ class PlanCalculator {
     if (federalTax.tax > 0) next!.add(PlanColumn.tax, "Federal Tax", federalTax.tax);
     if (stateTax > 0) next!.add(PlanColumn.tax, "Utah Tax", stateTax);
 
-    for (final (description, amount) in TaxCalculator.taxNotes(_taxRules, agi, next!.capitalGains)) {
+    for (final (description, amount) in _addTaxNotes(_taxRules, agi, next!.capitalGains, stack)) {
       next!.note(PlanColumn.tax, description, amount);
     }
 
@@ -446,7 +511,8 @@ class PlanCalculator {
 
     // The withdrawal is taxable, so recompute the tax and what remains unpaid.
     final brokerageAgi = next!.ordinaryIncome - next!.agiDeductions;
-    final brokerageFederal = TaxCalculator.federal(_taxRules, brokerageAgi, next!.capitalGains);
+    final brokerageStack = TaxCalculator.stack(_taxRules, brokerageAgi, next!.capitalGains);
+    final brokerageFederal = TaxCalculator.federal(_taxRules, brokerageAgi, next!.capitalGains, brokerageStack);
     final brokerageState = TaxCalculator.state(_taxRules, brokerageAgi, next!.capitalGains);
     next!.tax = brokerageFederal.tax + brokerageState;
     next!.taxBracket = brokerageFederal.topRate;
@@ -482,7 +548,8 @@ class PlanCalculator {
     _taxPaidThisYear += withdrawalAmount;
 
     final traditionalAgi = next!.ordinaryIncome - next!.agiDeductions;
-    final traditionalFederal = TaxCalculator.federal(_taxRules, traditionalAgi, next!.capitalGains);
+    final traditionalStack = TaxCalculator.stack(_taxRules, traditionalAgi, next!.capitalGains);
+    final traditionalFederal = TaxCalculator.federal(_taxRules, traditionalAgi, next!.capitalGains, traditionalStack);
     final traditionalState = TaxCalculator.state(_taxRules, traditionalAgi, next!.capitalGains);
     next!.tax = traditionalFederal.tax + traditionalState;
     next!.taxBracket = traditionalFederal.topRate;
@@ -532,8 +599,6 @@ class PlanCalculator {
       next!.note(PlanColumn.tax, '4x Federal Poverty Level', 4 * povertyLevel);
 
       if (magi > 4 * povertyLevel && next!.premiumTaxCredits > 0) {
-        // TODO: Between one and four times the poverty level only the excess of
-        // the credit received over the credit allowed has to be paid back.
         next!.premiumTaxCreditRepayment = next!.premiumTaxCredits;
         next!.note(PlanColumn.tax, 'Premium Tax Credit Repayment', next!.premiumTaxCredits);
       }
