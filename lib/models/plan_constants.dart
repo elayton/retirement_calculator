@@ -7,6 +7,11 @@ abstract final class PlanConstants {
   static const int medicareStartAge = 65;
   static const int rmdStartAge = 75;
 
+  /// The life-expectancy divisor the required minimum distribution is divided
+  /// by: the account balance stretched over that many years, a simplified
+  /// single life allowance.
+  static const double rmdDistributionPeriod = 25;
+
   static const double iraContributionLimit = 8600;
   static const double hsaContributionLimit = 9750;
 

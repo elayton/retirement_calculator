@@ -282,6 +282,26 @@ class PlanCalculator {
     next!.ordinaryIncome += conversionAmount;
   }
 
+  /// Withdraw the required minimum distribution from the traditional IRA once
+  /// the RMD age arrives, and so tax it: the withdrawal is taxable income, as
+  /// ordinary income, like any other the traditional IRA gives up. The 401(k)
+  /// has by retirement been transferred into the traditional IRA, so the old
+  /// age at which the rule bites is the traditional IRA that gets drawn down.
+  void _takeRmd() {
+    if (age! < PlanConstants.rmdStartAge) return;
+
+    final balance = next!.totalOf(PlanColumn.traditionalIra);
+    final rmd = balance / PlanConstants.rmdDistributionPeriod;
+    if (rmd <= 0) return;
+
+    // The withdrawal comes out of the traditional IRA, and with it the income
+    // the year is taxed on.
+    next!.sub(PlanColumn.traditionalIra, "Required Minimum Distribution", rmd);
+    next!.add(PlanColumn.income, "Required Minimum Distribution", rmd);
+    next!.traditionalIraWithdrawals += rmd;
+    next!.ordinaryIncome += rmd;
+  }
+
   /// Add a year of growth to the cash balance.
   void _growCash() {
     final growthRate = parameters.cashGrowthRate;
@@ -636,6 +656,8 @@ class PlanCalculator {
 
     _transferFourOhOneKToTraditionalIra();
     _convertTraditionalIraToRothIra();
+
+    _takeRmd();
 
     _growCash();
     _growBrokerage();
