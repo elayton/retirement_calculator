@@ -47,6 +47,18 @@ class PlanCalculator {
   /// [rate] percent of [amount].
   double _percentageOf(double amount, double rate) => amount * rate / 100;
 
+  /// The growth this year takes, in percent of the balance: the account's own
+  /// growth rate, or the loss a downturn strikes when the current age is one the
+  /// drop hits, which is how the downturn rate modifies the growth of every
+  /// account in the portfolio.
+  double _growthRate(double accountGrowthRate) {
+    if (parameters.downMarketAges.contains(age!)) {
+      return parameters.downMarketRate;
+    }
+
+    return accountGrowthRate;
+  }
+
   /// Scale [amount] to the share of the export year still to come, so a
   /// portfolio exported in June does not project a whole year at once.
   double _prorate(double amount) {
@@ -309,67 +321,79 @@ class PlanCalculator {
 
   /// Add a year of growth to the cash balance.
   void _growCash() {
-    final growthRate = parameters.cashGrowthRate;
+    final growthRate = _growthRate(parameters.cashGrowthRate);
     final total = next!.totalOf(PlanColumn.cash);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
 
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.cash, "Growth", growthAmount);
     }
   }
 
   /// Add a year of growth to the brokerage balance.
   void _growBrokerage() {
-    final growthRate = parameters.brokerageGrowthRate;
+    final growthRate = _growthRate(parameters.brokerageGrowthRate);
     final total = next!.totalOf(PlanColumn.brokerage) - next!.brokerageWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
 
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.brokerage, "Growth", growthAmount);
     }
   }
 
   /// Add a year of growth to the 401(k) balance.
   void _growFourOhOneK() {
-    final growthRate = parameters.fourOhOneKGrowthRate;
+    final growthRate = _growthRate(parameters.fourOhOneKGrowthRate);
     final total = next!.totalOf(PlanColumn.fourOhOneK) - next!.fourOhOneKWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
 
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.fourOhOneK, "Growth", growthAmount);
     }
   }
 
   /// Add a year of growth to the pre-tax traditional IRA balance.
   void _growTraditionalIra() {
-    final growthRate = parameters.traditionalIraGrowthRate;
+    final growthRate = _growthRate(parameters.traditionalIraGrowthRate);
     final total = next!.totalOf(PlanColumn.traditionalIra) - next!.traditionalIraWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.traditionalIra, "Growth", growthAmount);
     }
   }
 
   /// Add a year of growth to the after-tax Roth IRA balance.
   void _growRothIra() {
-    final growthRate = parameters.rothIraGrowthRate;
+    final growthRate = _growthRate(parameters.rothIraGrowthRate);
     final total = next!.totalOf(PlanColumn.rothIra) - next!.rothIraWithdrawals;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.rothIra, "Growth", growthAmount);
     }
   }
 
   /// Add a year of growth to the invested HSA balance.
   void _growHsa() {
-    final growthRate = parameters.hsaGrowthRate;
+    final growthRate = _growthRate(parameters.hsaGrowthRate);
     final investmentThreshold = parameters.hsaInvestmentThreshold;
     final total = next!.totalOf(PlanColumn.hsa) - investmentThreshold;
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     
-    if (growthAmount > 0) {
+    // A downturn year takes a loss, which comes out negative, and has to be
+    // recorded against the balance all the same.
+    if (growthAmount != 0) {
       next!.add(PlanColumn.hsa, "Growth", growthAmount);
     }
   }
