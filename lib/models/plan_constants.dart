@@ -5,12 +5,79 @@ abstract final class PlanConstants {
   static const int fourOhOneKWthdrawalAge = 55;
   static const int iraWithdrawalAge = 60;
   static const int medicareStartAge = 65;
-  static const int rmdStartAge = 75;
 
-  /// The life-expectancy divisor the required minimum distribution is divided
-  /// by: the account balance stretched over that many years, a simplified
-  /// single life allowance.
-  static const double rmdDistributionPeriod = 25;
+  /// The Uniform Lifetime Table's life expectancy factors by account owner's
+  /// age, as published by Fidelity: the number of years the account balance is
+  /// stretched over when the required minimum distribution is divided from it,
+  /// a simplified single life allowance.
+  ///
+  /// The factor is read off the table for the age the owner turns in the year
+  /// the distribution is taken, so the required minimum distribution is the
+  /// balance divided by the factor for that year, and not by one fixed
+  /// allowance.
+  ///
+  /// Source: Fidelity's Uniform Lifetime Table,
+  /// https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/UniformLifetimeTable.pdf
+  static const Map<int, double> uniformLifetimeFactors = <int, double>{
+    75: 24.6,
+    76: 23.7,
+    77: 22.9,
+    78: 22.0,
+    79: 21.1,
+    80: 20.2,
+    81: 19.4,
+    82: 18.5,
+    83: 17.7,
+    84: 16.8,
+    85: 16.0,
+    86: 15.2,
+    87: 14.4,
+    88: 13.7,
+    89: 12.9,
+    90: 12.2,
+    91: 11.5,
+    92: 10.8,
+    93: 10.1,
+    94: 9.5,
+    95: 8.9,
+    96: 8.4,
+    97: 7.8,
+    98: 7.3,
+    99: 6.8,
+    100: 6.4,
+    101: 6.0,
+    102: 5.6,
+    103: 5.2,
+    104: 4.9,
+    105: 4.6,
+    106: 4.3,
+    107: 4.1,
+    108: 3.9,
+    109: 3.7,
+    110: 3.5,
+    111: 3.4,
+    112: 3.3,
+    113: 3.1,
+    114: 3.0,
+    115: 2.9,
+    116: 2.8,
+    117: 2.7,
+    118: 2.5,
+    119: 2.3,
+    120: 2.0,
+  };
+
+  /// The life-expectancy factor the required minimum distribution is divided
+  /// by for an account owner of [age]: the account balance stretched over that
+  /// many years, per the Uniform Lifetime Table.
+  ///
+  /// Returns null when the table has no factor for [age], in which case no
+  /// required minimum distribution is worked out.
+  static double? rmdFactorFor(int age) => uniformLifetimeFactors[age];
+
+  /// The first age the Uniform Lifetime Table covers, and so the first at
+  /// which a required minimum distribution is worked out.
+  static int get firstRmdAge => uniformLifetimeFactors.keys.first;
 
   static const double iraContributionLimit = 8600;
   static const double hsaContributionLimit = 9750;

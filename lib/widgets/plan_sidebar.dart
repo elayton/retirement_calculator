@@ -115,12 +115,6 @@ class PlanSidebar extends StatelessWidget {
           value: PlanConstants.medicareStartAge,
           help: 'Medicare premiums replace medical insurance from this age.',
         ),
-        const SizedBox(height: 8),
-        ConstantField(
-          label: 'RMD Start Age',
-          value: PlanConstants.rmdStartAge,
-          help: 'Required minimum distributions from retirement accounts begin at this age.',
-        ),
       ],
     );
   }
