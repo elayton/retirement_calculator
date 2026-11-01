@@ -15,9 +15,7 @@ class BreakdownPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final portfolio = this.portfolio;
-    if (portfolio == null) {
-      return const NoPortfolioLoaded();
-    }
+    if (portfolio == null) return const NoPortfolioLoaded();
 
     // The distinct account types present in the portfolio, in enum order.
     final types = PortfolioAccountType.values.where((t) => portfolio.accounts.any((a) => a.type == t)).toList();

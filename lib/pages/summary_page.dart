@@ -15,9 +15,7 @@ class SummaryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final portfolio = this.portfolio;
-    if (portfolio == null) {
-      return const NoPortfolioLoaded();
-    }
+    if (portfolio == null) return const NoPortfolioLoaded();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

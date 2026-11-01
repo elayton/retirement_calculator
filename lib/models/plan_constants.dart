@@ -1,4 +1,5 @@
 abstract final class PlanConstants {
+
   static final birthday = DateTime(1971, 12, 3);
   static const int longevityAge = 100;
 
@@ -119,18 +120,18 @@ abstract final class PlanConstants {
   /// the income above the second threshold is taxed at.
   static const double socialSecurityMaximumTaxablePercentage = 85;
 
-  static const int familyMembers = 6;
-
   /// The federal poverty guidelines, which the premium tax credit is measured
   /// against. They move with the years, so they will need scaling with the
   /// inflation like the tax rules do.
   ///
   /// The base is the guideline for a one-person household less one person's
-  /// share, so a household of [familyMembers] is the base plus that many
+  /// share, so a household of that many people is the base plus that many
   /// shares.
   static const double federalPovertyLevelBase = 10280;
   static const double federalPovertyLevelPerPerson = 5680;
 
-  /// The federal poverty level for the household.
-  static double get federalPovertyLevel => federalPovertyLevelBase + federalPovertyLevelPerPerson * familyMembers;
+  // Most recent cost average cost basis for the positions in the brokerage
+  // account.
+  static const double brokerageAverageCostBasis = 240640.45;
+
 }

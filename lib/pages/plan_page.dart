@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/plan_models.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
+import '../models/plan_timeline.dart';
 import '../models/portfolio_models.dart';
 import '../calc/plan_calculator.dart';
 import '../widgets/plan_sidebar.dart';
@@ -20,28 +21,34 @@ class PlanPage extends StatefulWidget {
 }
 
 class _PlanPageState extends State<PlanPage> {
-  /// The parameters edited by the sidebar, applied to every rebuild of the table.
-  final PlanParameters _parameters = PlanParameters();
+
+  final PlanTimeline _timeline = PlanTimeline();
+  final PlanParametersMap _parametersMap;
+
+  _PlanPageState() : _parametersMap = PlanParametersMap(
+    minAge: DateTime.now().year - PlanConstants.birthday.year,
+    initial: PlanParameters.withDefaults(),
+  );
 
   @override
   Widget build(BuildContext context) {
     final portfolio = widget.portfolio;
-    if (portfolio == null) {
-      return const NoPortfolioLoaded();
-    }
+    if (portfolio == null) return const NoPortfolioLoaded();
 
     final columns = PlanColumn.values;
 
-    final parameters = _parameters;
+    final timeline = _timeline;
+    final parametersMap = _parametersMap;
+
     var totals = PlanTotals.fromPortfolio(portfolio);
 
-    final calculator = PlanCalculator(portfolioDate: portfolio.exportedDate, parameters: parameters, totals: totals);
+    final calculator = PlanCalculator(portfolioDate: portfolio.exportedDate, timeline: timeline, parametersMap: parametersMap, totals: totals);
 
     final rows = <(int, PlanTotals)>[];
-    var age = DateTime.now().year - PlanConstants.birthday.year;
+    var age = _parametersMap.minAge;
 
     while (age <= PlanConstants.longevityAge) {
-      totals = calculator.calculateNext(age);
+      totals = calculator.calculateTotalsFor(age);
       rows.add((age, totals));
       ++age;
     }
@@ -143,4 +150,5 @@ class _PlanPageState extends State<PlanPage> {
       ],
     );
   }
+  
 }

@@ -137,4 +137,9 @@ abstract final class TaxCalculator {
   }) =>
       ordinaryIncome + capitalGains - agiDeductions + taxExemptSocialSecurity;
 
+  /// The federal poverty level for a household of [familyMembers]: the
+  /// guideline for a one-person household plus one share per additional
+  /// person, against which the premium tax credit is measured.
+  static double federalPovertyLevelFor(int familyMembers) => PlanConstants.federalPovertyLevelBase + PlanConstants.federalPovertyLevelPerPerson * familyMembers;
+
 }

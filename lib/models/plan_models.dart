@@ -9,8 +9,6 @@ enum PlanColumn {
   traditionalIra('Traditional IRA'),
   rothIra('Roth IRA'),
   hsa('HSA'),
-  // Unlike the others, the tax columns hold a figure for the year rather than a
-  // running balance.
   taxBracket('Tax Bracket'),
   tax('Tax');
 
