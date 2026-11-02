@@ -1,10 +1,11 @@
 import 'package:retirement_calculator/calc/plan_calculator.dart';
 import 'package:retirement_calculator/models/plan_models.dart';
 import 'package:retirement_calculator/models/plan_parameters.dart';
+import 'package:retirement_calculator/models/plan_timeline.dart';
 import 'package:retirement_calculator/models/portfolio_models.dart';
 
 void main() {
-  final parameters = PlanParameters();
+  final parametersMap = PlanParametersMap(minAge: 55, initial: PlanParameters.withDefaults());
 
   final accounts = [
     for (final (type, balance) in const [
@@ -20,12 +21,14 @@ void main() {
 
   final calculator = PlanCalculator(
     portfolioDate: DateTime.utc(2026, 1, 1),
-    parameters: parameters,
+    timeline: PlanTimeline(),
+    parametersMap: parametersMap,
     totals: PlanTotals.fromPortfolio(portfolio),
   );
 
   for (var age = 55; age < 72; age++) {
-    final year = calculator.calculateNext(age);
+    parametersMap.age = age;
+    final year = calculator.calculateTotalsFor(age);
 
     final notes = year.balanceOf(PlanColumn.tax).notes;
     final magi = notes.where((n) => n.$1 == 'MAGI').fold<double?>(null, (v, n) => n.$2);

@@ -6,7 +6,7 @@ void main() {
     group('getBudget', () {
       test('returns the budget set for the current age', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(9000);
 
         expect(parametersMap.getBudget(), 9000);
@@ -14,15 +14,15 @@ void main() {
 
       test('returns the budget of the current age over the first age', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(7500);
 
-        parametersMap.withAge(70);
+        parametersMap.age = 70;
         parametersMap.setBudget(6000);
 
         expect(parametersMap.getBudget(), 6000);
 
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(8000);
 
         expect(parametersMap.getBudget(), 8000);
@@ -30,7 +30,7 @@ void main() {
 
       test('falls back to the first age when no parameters exist for the current age', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters.withDefaults());
-        parametersMap.withAge(65);
+        parametersMap.age = 65;
 
         expect(parametersMap.getBudget(), 7500);
       });
@@ -39,7 +39,7 @@ void main() {
     group('setBudget', () {
       test('sets the budget in the parameters for the current age', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(9000);
 
         expect(parametersMap.getBudget(), 9000);
@@ -47,10 +47,10 @@ void main() {
 
       test('creates new parameters for the current age when none are set', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(7500);
 
-        parametersMap.withAge(70);
+        parametersMap.age = 70;
         parametersMap.setBudget(6000);
 
         expect(parametersMap.getBudget(), 6000);
@@ -58,7 +58,7 @@ void main() {
 
       test('overwrites the budget of the parameters for the current age', () {
         final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
-        parametersMap.withAge(60);
+        parametersMap.age = 60;
         parametersMap.setBudget(9000);
 
         parametersMap.setBudget(9500);

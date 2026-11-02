@@ -58,6 +58,11 @@ class IntegerField extends StatelessWidget {
   final double minValue;
   final double maxValue;
   final String? help;
+  /// Whether the value was overridden for the age being shown, rather than
+  /// inherited; overridden values keep their full text color, others read as a
+  /// lighter gray.
+  final bool overridden;
+  final VoidCallback? onCleared;
 
   const IntegerField({
     super.key,
@@ -68,6 +73,8 @@ class IntegerField extends StatelessWidget {
     this.minValue = 0,
     this.maxValue = double.infinity,
     this.help,
+    this.overridden = false,
+    this.onCleared,
   });
 
   @override
@@ -80,6 +87,8 @@ class IntegerField extends StatelessWidget {
       minValue: minValue,
       maxValue: maxValue,
       help: help,
+      overridden: overridden,
+      onCleared: onCleared,
       onChanged: (value) => onChanged(value.round()),
     );
   }
@@ -102,6 +111,14 @@ class NumberField extends StatefulWidget {
   final String? prefix;
   final String? suffix;
   final String? help;
+  /// Whether the value was overridden for the age being shown, rather than
+  /// inherited; overridden values keep their full text color, others read as a
+  /// lighter gray.
+  final bool overridden;
+
+  /// Clears the value for the age being shown, returning it to whatever it
+  /// inherits; shown as a cross between the step arrows.
+  final VoidCallback? onCleared;
 
   const NumberField({
     super.key,
@@ -115,6 +132,8 @@ class NumberField extends StatefulWidget {
     this.prefix,
     this.suffix,
     this.help,
+    this.overridden = false,
+    this.onCleared,
   });
 
   @override
@@ -160,6 +179,19 @@ class NumberFieldState extends State<NumberField> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new value, such as the parameters of another age, replaces the box.
+    if (oldWidget.value != widget.value) {
+      final text = _format(widget.value, widget.decimalPlaces);
+      _value = widget.value;
+      // Written directly so typing and stepping share one value, caret kept at
+      // the end of the new text.
+      _controller.value = TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+    }
+  }
+
   // Only well-formed numbers at or above [minValue] are accepted. An emptied box
   // zeroes the parameter; a half-typed one keeps the last value until it parses.
   void _onChanged(String text) {
@@ -189,9 +221,9 @@ class NumberFieldState extends State<NumberField> {
     widget.onChanged(rounded);
   }
 
-  Widget _arrow(IconData icon, String tooltip, VoidCallback? onPressed) {
+  Widget _arrow(IconData icon, String tooltip, VoidCallback? onPressed, {double size = 18}) {
     return IconButton(
-      icon: Icon(icon, size: 18),
+      icon: Icon(icon, size: size),
       tooltip: tooltip,
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
@@ -213,6 +245,12 @@ class NumberFieldState extends State<NumberField> {
     final colorScheme = Theme.of(context).colorScheme;
     // The unit sits outside the number, so it does not move with the digits.
     final unitStyle = TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12);
+    // An overridden value keeps its full text color; one that has not been
+    // overridden yet reads as a lighter gray.
+    final valueStyle = TextStyle(
+      color: widget.overridden ? colorScheme.onSurface : Colors.grey,
+      inherit: true,
+    );
 
     return _fieldRow(
       widget.label,
@@ -223,6 +261,7 @@ class NumberFieldState extends State<NumberField> {
           textAlign: TextAlign.right,
           keyboardType: TextInputType.numberWithOptions(decimal: widget.decimalPlaces > 0, signed: _isSigned),
           inputFormatters: [_formatter],
+          style: valueStyle,
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -235,11 +274,13 @@ class NumberFieldState extends State<NumberField> {
           onChanged: _onChanged,
         ),
       ),
-      // Arrows step the value without touching the keyboard.
+      // Arrows step the value without touching the keyboard. The cross sits
+      // between them and clears the value back to what it inherits.
       stepper: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _arrow(Icons.keyboard_arrow_up, 'Increase', _value < widget.maxValue ? () => _step(widget.step) : null),
+          _arrow(Icons.close, 'Clear', widget.overridden ? widget.onCleared : null, size: 14),
           _arrow(Icons.keyboard_arrow_down, 'Decrease', _value > widget.minValue ? () => _step(-widget.step) : null),
         ],
       ),

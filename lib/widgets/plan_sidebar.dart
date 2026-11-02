@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
+import '../models/plan_timeline.dart';
 import 'plan_widgets.dart';
 
 /// Floor for every rate field: a rate may be negative, down to a total wipeout.
@@ -20,17 +21,24 @@ const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth',
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
 ///
-/// Parameters are edited in place on [parameters]; [onChanged] fires after each
-/// edit so the page can rebuild the table.
+/// It shows the parameters of the age of the selected row, [age]; an edited
+/// value is saved back into the parameters of that age, and [onChanged] fires
+/// after each edit so the page can rebuild the table.
 class PlanSidebar extends StatelessWidget {
-  final PlanParameters parameters;
+  final PlanParametersMap parametersMap;
+  final PlanTimeline timeline;
+  final int age;
   final VoidCallback onChanged;
   final double width;
 
-  const PlanSidebar({super.key, required this.parameters, required this.onChanged, this.width = planSidebarWidth});
+  const PlanSidebar({super.key, required this.parametersMap, required this.timeline, required this.age, required this.onChanged, this.width = planSidebarWidth});
 
   @override
   Widget build(BuildContext context) {
+    // The fields read the parameters of the selected age, and save any edits
+    // back into that age's parameters.
+    parametersMap.age = age;
+
     return SizedBox(
       width: width,
       child: Column(
@@ -66,34 +74,34 @@ class PlanSidebar extends StatelessWidget {
       children: [
         IntegerField(
           label: 'Retirement Age',
-          value: parameters.retirementAge,
+          value: timeline.retirementAge,
           help: 'Age at which salary income stops and retirement spending begins.',
           onChanged: (value) {
-            parameters.retirementAge = value;
+            timeline.retirementAge = value;
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         IntegerField(
           label: 'Primary Social Security Age',
-          value: parameters.primarySocialSecurityAge,
+          value: timeline.primarySocialSecurityAge,
           minValue: 62,
           maxValue: 70,
           help: 'Age at which primary Social Security income begins.',
           onChanged: (value) {
-            parameters.primarySocialSecurityAge = value;
+            timeline.primarySocialSecurityAge = value;
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         IntegerField(
           label: 'Secondary Social Security Age',
-          value: parameters.secondarySocialSecurityAge,
+          value: timeline.secondarySocialSecurityAge,
           minValue: 62,
           maxValue: 70,
           help: 'Age at which the secondary Social Security income begins.',
           onChanged: (value) {
-            parameters.secondarySocialSecurityAge = value;
+            timeline.secondarySocialSecurityAge = value;
             onChanged();
           },
         ),
@@ -126,53 +134,61 @@ class PlanSidebar extends StatelessWidget {
       children: [
         NumberField(
           label: 'Budget',
-          value: parameters.budget,
+          value: parametersMap.getBudget(),
+          overridden: parametersMap.parametersFor(age).budget != null,
+          onCleared: () { parametersMap.parametersFor(age).budget = null; onChanged(); },
           step: 100,
           prefix: r'$',
           suffix: '/mo',
           help: 'Monthly spending in retirement, excluding health insurance.',
           onChanged: (value) {
-            parameters.budget = value;
+            parametersMap.setBudget(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Medical Insurance',
-          value: parameters.medicalInsurance,
+          value: parametersMap.getMedicalInsurance(),
+          overridden: parametersMap.parametersFor(age).medicalInsurance != null,
+          onCleared: () { parametersMap.parametersFor(age).medicalInsurance = null; onChanged(); },
           step: 50,
           prefix: r'$',
           suffix: '/mo',
           help: 'Private health insurance monthly premium before Medicare starts at ${PlanConstants.medicareStartAge}.',
           onChanged: (value) {
-            parameters.medicalInsurance = value;
+            parametersMap.setMedicalInsurance(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Medicare',
-          value: parameters.medicare,
+          value: parametersMap.getMedicare(),
+          overridden: parametersMap.parametersFor(age).medicare != null,
+          onCleared: () { parametersMap.parametersFor(age).medicare = null; onChanged(); },
           step: 50,
           prefix: r'$',
           suffix: '/mo',
           help: 'Monthly premium once Medicare starts at ${PlanConstants.medicareStartAge}.',
           onChanged: (value) {
-            parameters.medicare = value;
+            parametersMap.setMedicare(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Inflation Rate',
-          value: parameters.inflationRate,
+          value: parametersMap.getInflationRate(),
+          overridden: parametersMap.parametersFor(age).inflationRate != null,
+          onCleared: () { parametersMap.parametersFor(age).inflationRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Expected annual rate of inflation. Spending, premiums, wages, benefits, and the tax rules all move with it.',
           onChanged: (value) {
-            parameters.inflationRate = value;
+            parametersMap.setInflationRate(value);
             onChanged();
           },
         ),
@@ -187,26 +203,30 @@ class PlanSidebar extends StatelessWidget {
       children: [
         NumberField(
           label: 'Base Salary',
-          value: parameters.baseSalary,
+          value: parametersMap.getBaseSalary(),
+          overridden: parametersMap.parametersFor(age).baseSalary != null,
+          onCleared: () { parametersMap.parametersFor(age).baseSalary = null; onChanged(); },
           step: 5000,
           prefix: r'$',
           help: 'Annual salary before bonus, taxes, and retirement contributions.',
           onChanged: (value) {
-            parameters.baseSalary = value;
+            parametersMap.setBaseSalary(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Bonus Rate',
-          value: parameters.bonusRate,
+          value: parametersMap.getBonusRate(),
+          overridden: parametersMap.parametersFor(age).bonusRate != null,
+          onCleared: () { parametersMap.parametersFor(age).bonusRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual bonus, as a percentage of the base salary.',
           onChanged: (value) {
-            parameters.bonusRate = value;
+            parametersMap.setBonusRate(value);
             onChanged();
           },
         ),
@@ -221,84 +241,96 @@ class PlanSidebar extends StatelessWidget {
       children: [
         NumberField(
           label: 'Cash Growth Rate',
-          value: parameters.cashGrowthRate,
+          value: parametersMap.getCashGrowthRate(),
+          overridden: parametersMap.parametersFor(age).cashGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).cashGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the cash balance.',
           onChanged: (value) {
-            parameters.cashGrowthRate = value;
+            parametersMap.setCashGrowthRate(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Brokerage Growth Rate',
-          value: parameters.brokerageGrowthRate,
+          value: parametersMap.getBrokerageGrowthRate(),
+          overridden: parametersMap.parametersFor(age).brokerageGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).brokerageGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the taxable brokerage balance.',
           onChanged: (value) {
-            parameters.brokerageGrowthRate = value;
+            parametersMap.setBrokerageGrowthRate(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: '401(k) Growth Rate',
-          value: parameters.fourOhOneKGrowthRate,
+          value: parametersMap.getFourOhOneKGrowthRate(),
+          overridden: parametersMap.parametersFor(age).fourOhOneKGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).fourOhOneKGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the 401(k) balance.',
           onChanged: (value) {
-            parameters.fourOhOneKGrowthRate = value;
+            parametersMap.setFourOhOneKGrowthRate(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Traditional IRA Growth Rate',
-          value: parameters.traditionalIraGrowthRate,
+          value: parametersMap.getTraditionalIraGrowthRate(),
+          overridden: parametersMap.parametersFor(age).traditionalIraGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).traditionalIraGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the pre-tax traditional IRA balance.',
           onChanged: (value) {
-            parameters.traditionalIraGrowthRate = value;
+            parametersMap.setTraditionalIraGrowthRate(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Roth IRA Growth Rate',
-          value: parameters.rothIraGrowthRate,
+          value: parametersMap.getRothIraGrowthRate(),
+          overridden: parametersMap.parametersFor(age).rothIraGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).rothIraGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the after-tax Roth IRA balance.',
           onChanged: (value) {
-            parameters.rothIraGrowthRate = value;
+            parametersMap.setRothIraGrowthRate(value);
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'HSA Growth Rate',
-          value: parameters.hsaGrowthRate,
+          value: parametersMap.getHsaGrowthRate(),
+          overridden: parametersMap.parametersFor(age).hsaGrowthRate != null,
+          onCleared: () { parametersMap.parametersFor(age).hsaGrowthRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the HSA balance above the cash threshold.',
           onChanged: (value) {
-            parameters.hsaGrowthRate = value;
+            parametersMap.setHsaGrowthRate(value);
             onChanged();
           },
         ),
@@ -313,17 +345,19 @@ class PlanSidebar extends StatelessWidget {
       children: [
         AgeListField(
           label: 'Downturn Ages',
-          value: parameters.downMarketAges,
+          value: timeline.downMarketAges,
           help: 'Ages at which a downturn strikes, separated by commas.',
           onChanged: (value) {
-            parameters.downMarketAges = value;
+            timeline.downMarketAges = value;
             onChanged();
           },
         ),
         const SizedBox(height: 8),
         NumberField(
           label: 'Downturn Rate',
-          value: parameters.downMarketRate,
+          value: parametersMap.getDownMarketRate(),
+          overridden: parametersMap.parametersFor(age).downMarketRate != null,
+          onCleared: () { parametersMap.parametersFor(age).downMarketRate = null; onChanged(); },
           decimalPlaces: 2,
           step: 5,
           // A downturn is a loss, so the field has to reach below zero.
@@ -331,7 +365,7 @@ class PlanSidebar extends StatelessWidget {
           suffix: '%',
           help: 'Change applied to the portfolio in a downturn year.',
           onChanged: (value) {
-            parameters.downMarketRate = value;
+            parametersMap.setDownMarketRate(value);
             onChanged();
           },
         ),
@@ -354,10 +388,10 @@ class PlanSidebar extends StatelessWidget {
                 child: Transform.scale(
                   scale: 0.7,
                   child: Switch(
-                    value: parameters.payTaxesFromBrokerage,
+                    value: parametersMap.getPayTaxesFromBrokerage(),
                     padding: EdgeInsets.zero,
                     onChanged: (value) {
-                      parameters.payTaxesFromBrokerage = value;
+                      parametersMap.setPayTaxesFromBrokerage(value);
                       onChanged();
                     },
                   ),
@@ -376,10 +410,10 @@ class PlanSidebar extends StatelessWidget {
                 child: Transform.scale(
                   scale: 0.7,
                   child: Switch(
-                    value: parameters.payTaxesFromTraditionalIra,
+                    value: parametersMap.getPayTaxesFromTraditionalIra(),
                     padding: EdgeInsets.zero,
                     onChanged: (value) {
-                      parameters.payTaxesFromTraditionalIra = value;
+                      parametersMap.setPayTaxesFromTraditionalIra(value);
                       onChanged();
                     },
                   ),
@@ -398,10 +432,10 @@ class PlanSidebar extends StatelessWidget {
                 child: Transform.scale(
                   scale: 0.7,
                   child: Switch(
-                    value: parameters.payTaxesFromRothIra,
+                    value: parametersMap.getPayTaxesFromRothIra(),
                     padding: EdgeInsets.zero,
                     onChanged: (value) {
-                      parameters.payTaxesFromRothIra = value;
+                      parametersMap.setPayTaxesFromRothIra(value);
                       onChanged();
                     },
                   ),

@@ -97,79 +97,82 @@ class PlanParametersMap {
 
   PlanParameters _getParameters() => _parametersMap.putIfAbsent(age, () => PlanParameters());
 
+  /// The parameters recorded for [age]; an unset set when none were saved for it.
+  PlanParameters parametersFor(int age) => _parametersMap[age] ?? PlanParameters();
+
   double getBudget() => _walk((age) => _parametersMap[age]?.budget) as double;
   void setBudget(double budget) => _getParameters().budget = budget;
 
   double getMedicalInsurance() => _walk((age) => _parametersMap[age]?.medicalInsurance);
-  void setMedicalInsurance(double? medicalInsurance) => _getParameters().medicalInsurance = medicalInsurance;
+  void setMedicalInsurance(double medicalInsurance) => _getParameters().medicalInsurance = medicalInsurance;
 
   double getPremiumTaxCredits() => _walk((age) => _parametersMap[age]?.premiumTaxCredits);
-  void setPremiumTaxCredits(double? premiumTaxCredits) => _getParameters().premiumTaxCredits = premiumTaxCredits;
+  void setPremiumTaxCredits(double premiumTaxCredits) => _getParameters().premiumTaxCredits = premiumTaxCredits;
 
   double getMedicare() => _walk((age) => _parametersMap[age]?.medicare);
-  void setMedicare(double? medicare) => _getParameters().medicare = medicare;
+  void setMedicare(double medicare) => _getParameters().medicare = medicare;
 
   double getInflationRate() => _walk((age) => _parametersMap[age]?.inflationRate);
-  void setInflationRate(double? inflationRate) => _getParameters().inflationRate = inflationRate;
+  void setInflationRate(double inflationRate) => _getParameters().inflationRate = inflationRate;
 
   double getBaseSalary() => _walk((age) => _parametersMap[age]?.baseSalary);
-  void setBaseSalary(double? baseSalary) => _getParameters().baseSalary = baseSalary;
+  void setBaseSalary(double baseSalary) => _getParameters().baseSalary = baseSalary;
 
   double getBonusRate() => _walk((age) => _parametersMap[age]?.bonusRate);
-  void setBonusRate(double? bonusRate) => _getParameters().bonusRate = bonusRate;
+  void setBonusRate(double bonusRate) => _getParameters().bonusRate = bonusRate;
 
   double getEmployee401kContributionRate() => _walk((age) => _parametersMap[age]?.employee401kContributionRate);
-  void setEmployee401kContributionRate(double? employee401kContributionRate) => _getParameters().employee401kContributionRate = employee401kContributionRate;
+  void setEmployee401kContributionRate(double employee401kContributionRate) => _getParameters().employee401kContributionRate = employee401kContributionRate;
 
   double getEmployer401kContributionRate() => _walk((age) => _parametersMap[age]?.employer401kContributionRate);
-  void setEmployer401kContributionRate(double? employer401kContributionRate) => _getParameters().employer401kContributionRate = employer401kContributionRate;
+  void setEmployer401kContributionRate(double employer401kContributionRate) => _getParameters().employer401kContributionRate = employer401kContributionRate;
 
   double getCashGrowthRate() => _walk((age) => _parametersMap[age]?.cashGrowthRate);
-  void setCashGrowthRate(double? cashGrowthRate) => _getParameters().cashGrowthRate = cashGrowthRate;
+  void setCashGrowthRate(double cashGrowthRate) => _getParameters().cashGrowthRate = cashGrowthRate;
 
   double getBrokerageGrowthRate() => _walk((age) => _parametersMap[age]?.brokerageGrowthRate);
-  void setBrokerageGrowthRate(double? brokerageGrowthRate) => _getParameters().brokerageGrowthRate = brokerageGrowthRate;
+  void setBrokerageGrowthRate(double brokerageGrowthRate) => _getParameters().brokerageGrowthRate = brokerageGrowthRate;
 
   double getFourOhOneKGrowthRate() => _walk((age) => _parametersMap[age]?.fourOhOneKGrowthRate);
-  void setFourOhOneKGrowthRate(double? fourOhoneKGrowthRate) => _getParameters().fourOhOneKGrowthRate = fourOhoneKGrowthRate;
+  void setFourOhOneKGrowthRate(double fourOhoneKGrowthRate) => _getParameters().fourOhOneKGrowthRate = fourOhoneKGrowthRate;
 
   double getTraditionalIraGrowthRate() => _walk((age) => _parametersMap[age]?.traditionalIraGrowthRate);
-  void setTraditionalIraGrowthRate(double? traditionalIraGrowthRate) => _getParameters().traditionalIraGrowthRate = traditionalIraGrowthRate;
+  void setTraditionalIraGrowthRate(double traditionalIraGrowthRate) => _getParameters().traditionalIraGrowthRate = traditionalIraGrowthRate;
 
   double getRothIraGrowthRate() => _walk((age) => _parametersMap[age]?.rothIraGrowthRate);
-  void setRothIraGrowthRate(double? rothIraGrowthRate) => _getParameters().rothIraGrowthRate = rothIraGrowthRate;
+  void setRothIraGrowthRate(double rothIraGrowthRate) => _getParameters().rothIraGrowthRate = rothIraGrowthRate;
 
   double getHsaInvestmentThreshold() => _walk((age) => _parametersMap[age]?.hsaInvestmentThreshold);
-  void setHsaInvestmentThreshold(double? hsaInvestmentThreshold) => _getParameters().hsaInvestmentThreshold = hsaInvestmentThreshold;
+  void setHsaInvestmentThreshold(double hsaInvestmentThreshold) => _getParameters().hsaInvestmentThreshold = hsaInvestmentThreshold;
 
   double getHsaGrowthRate() => _walk((age) => _parametersMap[age]?.hsaGrowthRate);
-  void setHsaGrowthRate(double? hsaGrowthRate) => _getParameters().hsaGrowthRate = hsaGrowthRate;
+  void setHsaGrowthRate(double hsaGrowthRate) => _getParameters().hsaGrowthRate = hsaGrowthRate;
 
   double getDownMarketRate() => _walk((age) => _parametersMap[age]?.downMarketRate);
-  void setDownMarketRate(double? downMarketRate) => _getParameters().downMarketRate = downMarketRate;
+  void setDownMarketRate(double downMarketRate) => _getParameters().downMarketRate = downMarketRate;
 
   double getTraditionalIraTaxRate() => _walk((age) => _parametersMap[age]?.traditionalIraTaxRate);
-  void setTraditionalIraTaxRate(double? traditionalIraTaxRate) => _getParameters().traditionalIraTaxRate = traditionalIraTaxRate;
+  void setTraditionalIraTaxRate(double traditionalIraTaxRate) => _getParameters().traditionalIraTaxRate = traditionalIraTaxRate;
 
   double getBrokerageContributions() => _walk((age) => _parametersMap[age]?.brokerageContributions);
-  void setBrokerageContributions(double? brokerageContributions) => _getParameters().brokerageContributions = brokerageContributions;
+  void setBrokerageContributions(double brokerageContributions) => _getParameters().brokerageContributions = brokerageContributions;
 
   double getRothIraContributions() => _walk((age) => _parametersMap[age]?.rothIraContributions);
-  void setRothIraContributions(double? rothIraContributions) => _getParameters().rothIraContributions = rothIraContributions;
+  void setRothIraContributions(double rothIraContributions) => _getParameters().rothIraContributions = rothIraContributions;
 
   double getRothIraConversion() => _walk((age) => _parametersMap[age]?.rothIraConversion);
-  void setRothIraConversion(double? rothIraConversion) => _getParameters().rothIraConversion = rothIraConversion;
+  void setRothIraConversion(double rothIraConversion) => _getParameters().rothIraConversion = rothIraConversion;
 
   bool getPayTaxesFromBrokerage() => _walk((age) => _parametersMap[age]?.payTaxesFromBrokerage);
-  void setPayTaxesFromBrokerage(bool? payTaxesFromBrokerage) => _getParameters().payTaxesFromBrokerage = payTaxesFromBrokerage;
+  void setPayTaxesFromBrokerage(bool payTaxesFromBrokerage) => _getParameters().payTaxesFromBrokerage = payTaxesFromBrokerage;
 
   bool getPayTaxesFromTraditionalIra() => _walk((age) => _parametersMap[age]?.payTaxesFromTraditionalIra);
-  void setPayTaxesFromTraditionalIra(bool? payTaxesFromTraditionalIra) => _getParameters().payTaxesFromTraditionalIra = payTaxesFromTraditionalIra;
+  void setPayTaxesFromTraditionalIra(bool payTaxesFromTraditionalIra) => _getParameters().payTaxesFromTraditionalIra = payTaxesFromTraditionalIra;
 
   bool getPayTaxesFromRothIra() => _walk((age) => _parametersMap[age]?.payTaxesFromRothIra);
-  void setPayTaxesFromRothIra(bool? payTaxesFromRothIra) => _getParameters().payTaxesFromRothIra = payTaxesFromRothIra;
+  void setPayTaxesFromRothIra(bool payTaxesFromRothIra) => _getParameters().payTaxesFromRothIra = payTaxesFromRothIra;
 
   int getFamilyMembers() => _walk((age) => _parametersMap[age]?.familyMembers);
-  void setFamilyMembers(int? familyMembers) => _getParameters().familyMembers = familyMembers;
+  void setFamilyMembers(int familyMembers) => _getParameters().familyMembers = familyMembers;
 
 }
