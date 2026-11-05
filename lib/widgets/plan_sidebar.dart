@@ -16,7 +16,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Downturns', 'Taxes'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Taxes'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -31,7 +31,11 @@ class PlanSidebar extends StatelessWidget {
   final VoidCallback onChanged;
   final double width;
 
-  const PlanSidebar({super.key, required this.parametersMap, required this.timeline, required this.age, required this.onChanged, this.width = planSidebarWidth});
+  /// Whether the parameters may be edited; while no age row is selected they
+  /// hold their value.
+  final bool enabled;
+
+  const PlanSidebar({super.key, required this.parametersMap, required this.timeline, required this.age, required this.onChanged, this.width = planSidebarWidth, this.enabled = true});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +51,7 @@ class PlanSidebar extends StatelessWidget {
           // One accordion per section; the ones without controls yet show a placeholder.
           for (final (i, title) in planSidebarSections.indexed) ...[
             if (i > 0) const SizedBox(height: 4),
-            _SidebarSection(title: title, children: _sectionFields(title, context)),
+            _SidebarSection(title: title, children: _sectionFields(title, context, enabled)),
           ],
         ],
       ),
@@ -55,14 +59,13 @@ class PlanSidebar extends StatelessWidget {
   }
 
   /// The controls belonging to [title], or null for a section with no fields yet.
-  List<Widget>? _sectionFields(String title, BuildContext context) {
+  List<Widget>? _sectionFields(String title, BuildContext context, bool enabled) {
     return switch (title) {
       'Timeline' => [_timelineFields(context)],
-      'Expenses' => [_expenseFields(context)],
-      'Salary' => [_salaryFields(context)],
-      'Growth' => [_growthFields(context)],
-      'Downturns' => [_downturnFields(context)],
-      'Taxes' => [_optionsFields(context)],
+      'Expenses' => [_expenseFields(context, enabled)],
+      'Salary' => [_salaryFields(context, enabled)],
+      'Growth' => [_growthFields(context, enabled)],
+      'Taxes' => [_optionsFields(context, enabled)],
       _ => null,
     };
   }
@@ -128,7 +131,7 @@ class PlanSidebar extends StatelessWidget {
   }
 
   /// The controls for monthly expenses.
-  Widget _expenseFields(BuildContext context) {
+  Widget _expenseFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,6 +144,7 @@ class PlanSidebar extends StatelessWidget {
           prefix: r'$',
           suffix: '/mo',
           help: 'Monthly spending in retirement, excluding health insurance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setBudget(value);
             onChanged();
@@ -156,6 +160,7 @@ class PlanSidebar extends StatelessWidget {
           prefix: r'$',
           suffix: '/mo',
           help: 'Private health insurance monthly premium before Medicare starts at ${PlanConstants.medicareStartAge}.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setMedicalInsurance(value);
             onChanged();
@@ -171,6 +176,7 @@ class PlanSidebar extends StatelessWidget {
           prefix: r'$',
           suffix: '/mo',
           help: 'Monthly premium once Medicare starts at ${PlanConstants.medicareStartAge}.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setMedicare(value);
             onChanged();
@@ -187,6 +193,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Expected annual rate of inflation. Spending, premiums, wages, benefits, and the tax rules all move with it.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setInflationRate(value);
             onChanged();
@@ -197,7 +204,7 @@ class PlanSidebar extends StatelessWidget {
   }
 
   /// The controls for earned income while working.
-  Widget _salaryFields(BuildContext context) {
+  Widget _salaryFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,6 +216,7 @@ class PlanSidebar extends StatelessWidget {
           step: 5000,
           prefix: r'$',
           help: 'Annual salary before bonus, taxes, and retirement contributions.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setBaseSalary(value);
             onChanged();
@@ -225,6 +233,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual bonus, as a percentage of the base salary.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setBonusRate(value);
             onChanged();
@@ -235,7 +244,7 @@ class PlanSidebar extends StatelessWidget {
   }
 
   /// The controls for the annual return assumed on each account.
-  Widget _growthFields(BuildContext context) {
+  Widget _growthFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -249,6 +258,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the cash balance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setCashGrowthRate(value);
             onChanged();
@@ -265,6 +275,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the taxable brokerage balance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setBrokerageGrowthRate(value);
             onChanged();
@@ -281,6 +292,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the 401(k) balance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setFourOhOneKGrowthRate(value);
             onChanged();
@@ -297,6 +309,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the pre-tax traditional IRA balance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setTraditionalIraGrowthRate(value);
             onChanged();
@@ -313,6 +326,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the after-tax Roth IRA balance.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setRothIraGrowthRate(value);
             onChanged();
@@ -329,6 +343,7 @@ class PlanSidebar extends StatelessWidget {
           minValue: _minRate,
           suffix: '%',
           help: 'Annual return on the HSA balance above the cash threshold.',
+          enabled: enabled,
           onChanged: (value) {
             parametersMap.setHsaGrowthRate(value);
             onChanged();
@@ -338,43 +353,8 @@ class PlanSidebar extends StatelessWidget {
     );
   }
 
-  /// The controls for the ages a market drop is applied at, and how deep it is.
-  Widget _downturnFields(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AgeListField(
-          label: 'Downturn Ages',
-          value: timeline.downMarketAges,
-          help: 'Ages at which a downturn strikes, separated by commas.',
-          onChanged: (value) {
-            timeline.downMarketAges = value;
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 8),
-        NumberField(
-          label: 'Downturn Rate',
-          value: parametersMap.getDownMarketRate(),
-          overridden: parametersMap.parametersFor(age).downMarketRate != null,
-          onCleared: () { parametersMap.parametersFor(age).downMarketRate = null; onChanged(); },
-          decimalPlaces: 2,
-          step: 5,
-          // A downturn is a loss, so the field has to reach below zero.
-          minValue: _minRate,
-          suffix: '%',
-          help: 'Change applied to the portfolio in a downturn year.',
-          onChanged: (value) {
-            parametersMap.setDownMarketRate(value);
-            onChanged();
-          },
-        ),
-      ],
-    );
-  }
-
   /// The controls for miscellaneous options.
-  Widget _optionsFields(BuildContext context) {
+  Widget _optionsFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -390,10 +370,10 @@ class PlanSidebar extends StatelessWidget {
                   child: Switch(
                     value: parametersMap.getPayTaxesFromBrokerage(),
                     padding: EdgeInsets.zero,
-                    onChanged: (value) {
+                    onChanged: enabled ? (value) {
                       parametersMap.setPayTaxesFromBrokerage(value);
                       onChanged();
-                    },
+                    } : null,
                   ),
                 ),
               ),
@@ -412,10 +392,10 @@ class PlanSidebar extends StatelessWidget {
                   child: Switch(
                     value: parametersMap.getPayTaxesFromTraditionalIra(),
                     padding: EdgeInsets.zero,
-                    onChanged: (value) {
+                    onChanged: enabled ? (value) {
                       parametersMap.setPayTaxesFromTraditionalIra(value);
                       onChanged();
-                    },
+                    } : null,
                   ),
                 ),
               ),
@@ -434,10 +414,10 @@ class PlanSidebar extends StatelessWidget {
                   child: Switch(
                     value: parametersMap.getPayTaxesFromRothIra(),
                     padding: EdgeInsets.zero,
-                    onChanged: (value) {
+                    onChanged: enabled ? (value) {
                       parametersMap.setPayTaxesFromRothIra(value);
                       onChanged();
-                    },
+                    } : null,
                   ),
                 ),
               ),

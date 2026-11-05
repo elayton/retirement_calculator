@@ -64,6 +64,9 @@ class IntegerField extends StatelessWidget {
   final bool overridden;
   final VoidCallback? onCleared;
 
+  /// Whether the field may be edited; disabled fields hold their value.
+  final bool enabled;
+
   const IntegerField({
     super.key,
     required this.label,
@@ -75,6 +78,7 @@ class IntegerField extends StatelessWidget {
     this.help,
     this.overridden = false,
     this.onCleared,
+    this.enabled = true,
   });
 
   @override
@@ -89,6 +93,7 @@ class IntegerField extends StatelessWidget {
       help: help,
       overridden: overridden,
       onCleared: onCleared,
+      enabled: enabled,
       onChanged: (value) => onChanged(value.round()),
     );
   }
@@ -120,6 +125,9 @@ class NumberField extends StatefulWidget {
   /// inherits; shown as a cross between the step arrows.
   final VoidCallback? onCleared;
 
+  /// Whether the field may be edited; disabled fields hold their value.
+  final bool enabled;
+
   const NumberField({
     super.key,
     required this.label,
@@ -134,6 +142,7 @@ class NumberField extends StatefulWidget {
     this.help,
     this.overridden = false,
     this.onCleared,
+    this.enabled = true,
   });
 
   @override
@@ -272,6 +281,7 @@ class NumberFieldState extends State<NumberField> {
             suffixStyle: unitStyle,
           ),
           onChanged: _onChanged,
+          enabled: widget.enabled,
         ),
       ),
       // Arrows step the value without touching the keyboard. The cross sits
@@ -279,69 +289,10 @@ class NumberFieldState extends State<NumberField> {
       stepper: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _arrow(Icons.keyboard_arrow_up, 'Increase', _value < widget.maxValue ? () => _step(widget.step) : null),
-          _arrow(Icons.close, 'Clear', widget.overridden ? widget.onCleared : null, size: 14),
-          _arrow(Icons.keyboard_arrow_down, 'Decrease', _value > widget.minValue ? () => _step(-widget.step) : null),
+          _arrow(Icons.keyboard_arrow_up, 'Increase', widget.enabled && _value < widget.maxValue ? () => _step(widget.step) : null),
+          _arrow(Icons.close, 'Clear', widget.enabled && widget.overridden ? widget.onCleared : null, size: 14),
+          _arrow(Icons.keyboard_arrow_down, 'Decrease', widget.enabled && _value > widget.minValue ? () => _step(-widget.step) : null),
         ],
-      ),
-      help: widget.help,
-    );
-  }
-}
-
-/// A labeled box that edits a list of ages typed as a comma-delimited string,
-/// such as "65, 70, 73".
-class AgeListField extends StatefulWidget {
-  final String label;
-  final List<int> value;
-  final ValueChanged<List<int>> onChanged;
-  final String? help;
-
-  const AgeListField({super.key, required this.label, required this.value, required this.onChanged, this.help});
-
-  @override
-  State<AgeListField> createState() => AgeListFieldState();
-}
-
-class AgeListFieldState extends State<AgeListField> {
-  late final TextEditingController _controller = TextEditingController(text: widget.value.join(', '));
-
-  /// Digits and separators only.
-  static final _formatter = FilteringTextInputFormatter.allow(RegExp(r'[\d,\s]'));
-
-  /// The ages typed into [text], with blank and half-typed entries dropped.
-  static List<int> _parse(String text) {
-    return text
-        .split(',')
-        .map((part) => int.tryParse(part.trim()))
-        .whereType<int>()
-        .toList();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _fieldRow(
-      widget.label,
-      SizedBox(
-        width: _valueBoxWidth,
-        child: TextField(
-          controller: _controller,
-          textAlign: TextAlign.right,
-          keyboardType: TextInputType.number,
-          inputFormatters: [_formatter],
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            constraints: const BoxConstraints.tightFor(height: _valueBoxHeight),
-          ),
-          onChanged: (text) => widget.onChanged(_parse(text)),
-        ),
       ),
       help: widget.help,
     );

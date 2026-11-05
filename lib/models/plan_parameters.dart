@@ -26,7 +26,6 @@ class PlanParameters {
   double? rothIraGrowthRate;
   double? hsaInvestmentThreshold;
   double? hsaGrowthRate;
-  double? downMarketRate;
   double? traditionalIraTaxRate;
 
   /* Contributions and conversions. */
@@ -64,8 +63,7 @@ class PlanParameters {
     rothIraGrowthRate = 8;
     hsaInvestmentThreshold = 2500;
     hsaGrowthRate = 4;
-    downMarketRate = -50;
-    traditionalIraTaxRate = 22;
+    traditionalIraTaxRate = 22; // TODO: This shouldn't be here.
     brokerageContributions = 0;
     rothIraContributions = 0;
     rothIraConversion = 100000;
@@ -147,9 +145,6 @@ class PlanParametersMap {
 
   double getHsaGrowthRate() => _walk((age) => _parametersMap[age]?.hsaGrowthRate);
   void setHsaGrowthRate(double hsaGrowthRate) => _getParameters().hsaGrowthRate = hsaGrowthRate;
-
-  double getDownMarketRate() => _walk((age) => _parametersMap[age]?.downMarketRate);
-  void setDownMarketRate(double downMarketRate) => _getParameters().downMarketRate = downMarketRate;
 
   double getTraditionalIraTaxRate() => _walk((age) => _parametersMap[age]?.traditionalIraTaxRate);
   void setTraditionalIraTaxRate(double traditionalIraTaxRate) => _getParameters().traditionalIraTaxRate = traditionalIraTaxRate;

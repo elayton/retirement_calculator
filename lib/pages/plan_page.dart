@@ -63,6 +63,7 @@ class _PlanPageState extends State<PlanPage> {
           parametersMap: parametersMap,
           timeline: timeline,
           age: selectedAge,
+          enabled: _selectedAge != null,
           onChanged: () => setState(() {}),
         );
         final table = SizedBox(width: double.infinity, child: _planTable(context, columns, rows, timeline));
