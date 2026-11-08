@@ -16,7 +16,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Taxes'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Taxes', 'Health'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -36,6 +36,11 @@ class PlanSidebar extends StatelessWidget {
   final bool enabled;
 
   const PlanSidebar({super.key, required this.parametersMap, required this.timeline, required this.age, required this.onChanged, this.width = planSidebarWidth, this.enabled = true});
+
+  /// Whether the parameter shown may be cleared back to what it inherits; the
+  /// first row holds the defaults that later rows inherit, so none of its
+  /// parameters may be cleared back to nothing.
+  bool get _canClear => age != parametersMap.minAge;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +71,7 @@ class PlanSidebar extends StatelessWidget {
       'Salary' => [_salaryFields(context, enabled)],
       'Growth' => [_growthFields(context, enabled)],
       'Taxes' => [_optionsFields(context, enabled)],
+      'Health' => [_healthFields(context, enabled)],
       _ => null,
     };
   }
@@ -139,7 +145,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Budget',
           value: parametersMap.getBudget(),
           overridden: parametersMap.parametersFor(age).budget != null,
-          onCleared: () { parametersMap.parametersFor(age).budget = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).budget = null; onChanged(); } : null,
           step: 100,
           prefix: r'$',
           suffix: '/mo',
@@ -155,7 +161,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Medical Insurance',
           value: parametersMap.getMedicalInsurance(),
           overridden: parametersMap.parametersFor(age).medicalInsurance != null,
-          onCleared: () { parametersMap.parametersFor(age).medicalInsurance = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).medicalInsurance = null; onChanged(); } : null,
           step: 50,
           prefix: r'$',
           suffix: '/mo',
@@ -171,7 +177,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Medicare',
           value: parametersMap.getMedicare(),
           overridden: parametersMap.parametersFor(age).medicare != null,
-          onCleared: () { parametersMap.parametersFor(age).medicare = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).medicare = null; onChanged(); } : null,
           step: 50,
           prefix: r'$',
           suffix: '/mo',
@@ -187,7 +193,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Inflation Rate',
           value: parametersMap.getInflationRate(),
           overridden: parametersMap.parametersFor(age).inflationRate != null,
-          onCleared: () { parametersMap.parametersFor(age).inflationRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).inflationRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -212,7 +218,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Base Salary',
           value: parametersMap.getBaseSalary(),
           overridden: parametersMap.parametersFor(age).baseSalary != null,
-          onCleared: () { parametersMap.parametersFor(age).baseSalary = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).baseSalary = null; onChanged(); } : null,
           step: 5000,
           prefix: r'$',
           help: 'Annual salary before bonus, taxes, and retirement contributions.',
@@ -227,7 +233,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Bonus Rate',
           value: parametersMap.getBonusRate(),
           overridden: parametersMap.parametersFor(age).bonusRate != null,
-          onCleared: () { parametersMap.parametersFor(age).bonusRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).bonusRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -252,7 +258,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Cash Growth Rate',
           value: parametersMap.getCashGrowthRate(),
           overridden: parametersMap.parametersFor(age).cashGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).cashGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).cashGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -269,7 +275,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Brokerage Growth Rate',
           value: parametersMap.getBrokerageGrowthRate(),
           overridden: parametersMap.parametersFor(age).brokerageGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).brokerageGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).brokerageGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -286,7 +292,7 @@ class PlanSidebar extends StatelessWidget {
           label: '401(k) Growth Rate',
           value: parametersMap.getFourOhOneKGrowthRate(),
           overridden: parametersMap.parametersFor(age).fourOhOneKGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).fourOhOneKGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).fourOhOneKGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -303,7 +309,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Traditional IRA Growth Rate',
           value: parametersMap.getTraditionalIraGrowthRate(),
           overridden: parametersMap.parametersFor(age).traditionalIraGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).traditionalIraGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).traditionalIraGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -320,7 +326,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'Roth IRA Growth Rate',
           value: parametersMap.getRothIraGrowthRate(),
           overridden: parametersMap.parametersFor(age).rothIraGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).rothIraGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).rothIraGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -337,7 +343,7 @@ class PlanSidebar extends StatelessWidget {
           label: 'HSA Growth Rate',
           value: parametersMap.getHsaGrowthRate(),
           overridden: parametersMap.parametersFor(age).hsaGrowthRate != null,
-          onCleared: () { parametersMap.parametersFor(age).hsaGrowthRate = null; onChanged(); },
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).hsaGrowthRate = null; onChanged(); } : null,
           decimalPlaces: 2,
           step: 0.5,
           minValue: _minRate,
@@ -423,6 +429,28 @@ class PlanSidebar extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  /// The controls for household health coverage.
+  Widget _healthFields(BuildContext context, bool enabled) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IntegerField(
+          label: 'Family Members',
+          value: parametersMap.getFamilyMembers(),
+          overridden: parametersMap.parametersFor(age).familyMembers != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).familyMembers = null; onChanged(); } : null,
+          minValue: 1,
+          help: "Expected size of the tax filer's household, used to work out the federal poverty level the premium tax credit is measured against.",
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setFamilyMembers(value);
+            onChanged();
+          },
         ),
       ],
     );

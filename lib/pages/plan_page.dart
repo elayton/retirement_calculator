@@ -26,6 +26,12 @@ class _PlanPageState extends State<PlanPage> {
   late final PlanParametersMap _parametersMap = PlanParametersMap(
     minAge: DateTime.now().year - PlanConstants.birthday.year,
     initial: PlanParameters.withDefaults(),
+    initialMap: {
+      57: PlanParameters(familyMembers: 5),
+      61: PlanParameters(familyMembers: 4),
+      63: PlanParameters(familyMembers: 3),
+      67: PlanParameters(familyMembers: 2),
+    },
   );
 
   /// The age of the row the sidebar is showing; tapping a row in the table

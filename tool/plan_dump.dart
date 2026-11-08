@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:retirement_calculator/calc/plan_calculator.dart';
 import 'package:retirement_calculator/models/plan_models.dart';
 import 'package:retirement_calculator/models/plan_parameters.dart';
@@ -39,6 +41,6 @@ void main() {
         .map((a) => '${a.$1}: ${a.$2.toStringAsFixed(0)}')
         .join(', ');
 
-    print('age $age  magi ${magi?.toStringAsFixed(0) ?? '-'}  repayment ${repayment?.toStringAsFixed(0) ?? '-'}  [$expenses]');
+    stdout.writeln('age $age  magi ${magi?.toStringAsFixed(0) ?? '-'}  repayment ${repayment?.toStringAsFixed(0) ?? '-'}  [$expenses]');
   }
 }

@@ -573,7 +573,10 @@ class PlanCalculator {
     final balance = next.totalOf(PlanColumn.traditionalIra);
     if (balance <= 0) return;
 
-    final marginalFederalRate = parametersMap.getTraditionalIraTaxRate();
+    // The withdrawal is taxed as ordinary income, so the amount taken out has
+    // to cover the tax on the withdrawal as well; the year's top marginal
+    // federal rate just worked out covers it, along with the state rate.
+    final marginalFederalRate = next.taxBracket;
     final netFactor = 1 - (marginalFederalRate + PlanConstants.stateRate) / 100;
     if (netFactor <= 0) return;
 

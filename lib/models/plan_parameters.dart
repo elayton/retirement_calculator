@@ -26,7 +26,6 @@ class PlanParameters {
   double? rothIraGrowthRate;
   double? hsaInvestmentThreshold;
   double? hsaGrowthRate;
-  double? traditionalIraTaxRate;
 
   /* Contributions and conversions. */
 
@@ -44,7 +43,31 @@ class PlanParameters {
   /// federal poverty level the premium tax credit is measured against.
   int? familyMembers;
 
-  PlanParameters();
+  PlanParameters({
+    this.budget,
+    this.medicalInsurance,
+    this.premiumTaxCredits,
+    this.medicare,
+    this.inflationRate,
+    this.baseSalary,
+    this.bonusRate,
+    this.employee401kContributionRate,
+    this.employer401kContributionRate,
+    this.cashGrowthRate,
+    this.brokerageGrowthRate,
+    this.fourOhOneKGrowthRate,
+    this.traditionalIraGrowthRate,
+    this.rothIraGrowthRate,
+    this.hsaInvestmentThreshold,
+    this.hsaGrowthRate,
+    this.brokerageContributions,
+    this.rothIraContributions,
+    this.rothIraConversion,
+    this.payTaxesFromBrokerage,
+    this.payTaxesFromTraditionalIra,
+    this.payTaxesFromRothIra,
+    this.familyMembers,
+  });
 
   PlanParameters.withDefaults() {
     budget = 7500;
@@ -63,7 +86,6 @@ class PlanParameters {
     rothIraGrowthRate = 8;
     hsaInvestmentThreshold = 2500;
     hsaGrowthRate = 4;
-    traditionalIraTaxRate = 22; // TODO: This shouldn't be here.
     brokerageContributions = 0;
     rothIraContributions = 0;
     rothIraConversion = 100000;
@@ -82,8 +104,15 @@ class PlanParametersMap {
 
   late int age;
 
-  PlanParametersMap({required this.minAge, required PlanParameters initial}) {
+  PlanParametersMap({required this.minAge, required PlanParameters initial, Map<int, PlanParameters>? initialMap}) {
     _parametersMap[minAge] = initial;
+    if (initialMap != null) {
+      for (var entry in initialMap.entries) {
+        if (entry.key >= minAge) {
+          _parametersMap[entry.key] = entry.value;
+        }
+      }
+    }
   }
 
   dynamic _walk(dynamic Function(int age) func) {
@@ -145,9 +174,6 @@ class PlanParametersMap {
 
   double getHsaGrowthRate() => _walk((age) => _parametersMap[age]?.hsaGrowthRate);
   void setHsaGrowthRate(double hsaGrowthRate) => _getParameters().hsaGrowthRate = hsaGrowthRate;
-
-  double getTraditionalIraTaxRate() => _walk((age) => _parametersMap[age]?.traditionalIraTaxRate);
-  void setTraditionalIraTaxRate(double traditionalIraTaxRate) => _getParameters().traditionalIraTaxRate = traditionalIraTaxRate;
 
   double getBrokerageContributions() => _walk((age) => _parametersMap[age]?.brokerageContributions);
   void setBrokerageContributions(double brokerageContributions) => _getParameters().brokerageContributions = brokerageContributions;
