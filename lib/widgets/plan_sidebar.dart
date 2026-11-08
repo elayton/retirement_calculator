@@ -445,7 +445,7 @@ class PlanSidebar extends StatelessWidget {
           overridden: parametersMap.parametersFor(age).familyMembers != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).familyMembers = null; onChanged(); } : null,
           minValue: 1,
-          help: "Expected size of the tax filer's household, used to work out the federal poverty level the premium tax credit is measured against.",
+          help: "Expected household size, used to work out the federal poverty level the premium tax credit is measured against.",
           enabled: enabled,
           onChanged: (value) {
             parametersMap.setFamilyMembers(value);

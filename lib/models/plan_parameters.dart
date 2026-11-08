@@ -106,13 +106,11 @@ class PlanParametersMap {
 
   PlanParametersMap({required this.minAge, required PlanParameters initial, Map<int, PlanParameters>? initialMap}) {
     _parametersMap[minAge] = initial;
-    if (initialMap != null) {
-      for (var entry in initialMap.entries) {
-        if (entry.key >= minAge) {
-          _parametersMap[entry.key] = entry.value;
-        }
+    initialMap?.forEach((age, parameters) {
+      if (age >= minAge) {
+        _parametersMap[age] = parameters;
       }
-    }
+    });
   }
 
   dynamic _walk(dynamic Function(int age) func) {
