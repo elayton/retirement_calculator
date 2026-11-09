@@ -327,7 +327,9 @@ class PlanCalculator {
   /// Add a year of growth to the brokerage balance.
   void _growBrokerage() {
     final growthRate = parametersMap.getBrokerageGrowthRate();
-    final total = next.totalOf(PlanColumn.brokerage) - next.brokerageWithdrawals;
+    // Withdrawals are already deducted from the balance, so growth is worked
+    // out against what remains.
+    final total = next.totalOf(PlanColumn.brokerage);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
 
     // A negative growth rate takes a loss, which comes out negative, and has to
@@ -340,7 +342,9 @@ class PlanCalculator {
   /// Add a year of growth to the 401(k) balance.
   void _growFourOhOneK() {
     final growthRate = parametersMap.getFourOhOneKGrowthRate();
-    final total = next.totalOf(PlanColumn.fourOhOneK) - next.fourOhOneKWithdrawals;
+    // Withdrawals are already deducted from the balance, so growth is worked
+    // out against what remains.
+    final total = next.totalOf(PlanColumn.fourOhOneK);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
 
     // A negative growth rate takes a loss, which comes out negative, and has to
@@ -353,7 +357,9 @@ class PlanCalculator {
   /// Add a year of growth to the pre-tax traditional IRA balance.
   void _growTraditionalIra() {
     final growthRate = parametersMap.getTraditionalIraGrowthRate();
-    final total = next.totalOf(PlanColumn.traditionalIra) - next.traditionalIraWithdrawals;
+    // Withdrawals are already deducted from the balance, so growth is worked
+    // out against what remains.
+    final total = next.totalOf(PlanColumn.traditionalIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     
     // A negative growth rate takes a loss, which comes out negative, and has to
@@ -366,7 +372,9 @@ class PlanCalculator {
   /// Add a year of growth to the after-tax Roth IRA balance.
   void _growRothIra() {
     final growthRate = parametersMap.getRothIraGrowthRate();
-    final total = next.totalOf(PlanColumn.rothIra) - next.rothIraWithdrawals;
+    // Withdrawals are already deducted from the balance, so growth is worked
+    // out against what remains.
+    final total = next.totalOf(PlanColumn.rothIra);
     final growthAmount = _prorate(_percentageOf(total, growthRate));
     
     // A negative growth rate takes a loss, which comes out negative, and has to
