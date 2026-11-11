@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/plan_parameters.dart';
+
 /// Width of the value box, shared by the editable and fixed fields so the
 /// numbers line up down the section.
 const _valueBoxWidth = 100.0;
@@ -20,6 +22,129 @@ const _stepperHeight = 16.0;
 
 /// Gap between the value box and the stepper column.
 const _stepperGap = 4.0;
+
+/// A manually ordered list of the payment sources an outlay may be paid from.
+///
+/// The sources sit in the order they are tried, which is the order the plan
+/// pays them: the first entry covers what it can before the second is drawn on,
+/// and so on until the outlay is covered or the list runs dry. The order can be
+/// changed by hand, and sources can be added to or taken off the list; taking
+/// off the last source nullifies it, which the plan reads back as unset.
+class PaymentSourceOrderField extends StatelessWidget {
+  final String label;
+  final List<PaymentSource>? sources;
+  final ValueChanged<List<PaymentSource>?> onChanged;
+  final bool enabled;
+  final String? help;
+
+  const PaymentSourceOrderField({
+    super.key,
+    required this.label,
+    required this.sources,
+    required this.onChanged,
+    this.enabled = true,
+    this.help,
+  });
+
+  /// Every source an outlay can be paid from, in display order.
+  static const List<PaymentSource> allSources = [PaymentSource.cash, PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra, PaymentSource.hsa];
+
+  void _move(int index, int delta) {
+    final sourceList = sources;
+    if (sourceList == null) return;
+
+    final target = index + delta;
+    if (target < 0 || target >= sourceList.length) return;
+
+    final next = List<PaymentSource>.from(sourceList);
+    final moved = next[index];
+    next[index] = next[target];
+    next[target] = moved;
+
+    onChanged(next);
+  }
+
+  void _add(PaymentSource source) {
+    final sourceList = sources ?? const <PaymentSource>[];
+    onChanged([...sourceList, source]);
+  }
+
+  void _remove(PaymentSource source) {
+    final sourceList = sources;
+    if (sourceList == null) return;
+
+    final remaining = sourceList.where((s) => s != source).toList();
+    // Removing the last source nullifies the list, which the plan reads back as
+    // unset and inherits the first age's sources from.
+    onChanged(remaining.isEmpty ? null : remaining);
+  }
+
+  Widget _button(BuildContext context, IconData icon, String tooltip, bool active, VoidCallback? onPressed) {
+    return IconButton(
+      icon: Icon(icon, size: 18),
+      tooltip: tooltip,
+      onPressed: active ? onPressed : null,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      // Under Material 3 an IconButton keeps the 40x40 default minimum and ignores
+      // the `constraints` constructor argument, so the size has to come from
+      // the style.
+      style: IconButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.primary,
+        minimumSize: const Size(_stepperWidth, _stepperHeight),
+        maximumSize: const Size(_stepperWidth, _stepperHeight),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+
+  Widget _sourceRow(BuildContext context, PaymentSource source, int index) {
+    return Row(
+      children: [
+        Expanded(child: Text(source.label)),
+        _button(context, Icons.keyboard_arrow_up, 'Move up', enabled && index > 0, () => _move(index, -1)),
+        _button(context, Icons.keyboard_arrow_down, 'Move down', enabled && index < (sources?.length ?? 0) - 1, () => _move(index, 1)),
+        _button(context, Icons.remove, 'Remove source', enabled, () => _remove(source)),
+      ],
+    );
+  }
+
+  Widget _addSourceRow(BuildContext context, PaymentSource source) {
+    return Row(
+      children: [
+        Expanded(child: Text(source.label)),
+        _button(context, Icons.add, 'Add source', enabled, () => _add(source)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sourceList = sources ?? const <PaymentSource>[];
+    final children = <Widget>[];
+    for (var i = 0; i < sourceList.length; i++) {
+      if (children.isNotEmpty) children.add(const SizedBox(height: 4));
+      children.add(_sourceRow(context, sourceList[i], i));
+    }
+    for (final source in allSources) {
+      if (sourceList.contains(source)) continue;
+      if (!enabled) continue;
+      if (children.isNotEmpty) children.add(const SizedBox(height: 4));
+      children.add(_addSourceRow(context, source));
+    }
+
+    Widget field = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+        const SizedBox(height: 4),
+        ...children,
+      ],
+    );
+
+    return help == null ? field : Tooltip(message: help, child: field);
+  }
+}
 
 /// The row shared by every field below: a label that soaks up the slack, the
 /// value box, then the stepper column or an equally wide blank.

@@ -16,7 +16,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Taxes', 'Health'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Payments', 'Health'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -70,7 +70,7 @@ class PlanSidebar extends StatelessWidget {
       'Expenses' => [_expenseFields(context, enabled)],
       'Salary' => [_salaryFields(context, enabled)],
       'Growth' => [_growthFields(context, enabled)],
-      'Taxes' => [_optionsFields(context, enabled)],
+      'Payments' => [_paymentFields(context, enabled)],
       'Health' => [_healthFields(context, enabled)],
       _ => null,
     };
@@ -359,76 +359,31 @@ class PlanSidebar extends StatelessWidget {
     );
   }
 
-  /// The controls for miscellaneous options.
-  Widget _optionsFields(BuildContext context, bool enabled) {
+  /// The controls for the sources the plan pays from.
+  Widget _paymentFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(child: Text('Pay Taxes from Brokerage')),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Transform.translate(
-                offset: const Offset(3, 0),
-                child: Transform.scale(
-                  scale: 0.7,
-                  child: Switch(
-                    value: parametersMap.getPayTaxesFromBrokerage(),
-                    padding: EdgeInsets.zero,
-                    onChanged: enabled ? (value) {
-                      parametersMap.setPayTaxesFromBrokerage(value);
-                      onChanged();
-                    } : null,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        PaymentSourceOrderField(
+          label: 'Pay Expenses From',
+          sources: parametersMap.getPayExpensesFrom(),
+          onChanged: (sources) {
+            parametersMap.setPayExpensesFrom(sources);
+            onChanged();
+          },
+          help: 'The sources expenses are paid from, in the order they are tried.',
+          enabled: enabled,
         ),
-        Row(
-          children: [
-            const Expanded(child: Text('Pay Taxes from Traditional IRA')),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Transform.translate(
-                offset: const Offset(3, 0),
-                child: Transform.scale(
-                  scale: 0.7,
-                  child: Switch(
-                    value: parametersMap.getPayTaxesFromTraditionalIra(),
-                    padding: EdgeInsets.zero,
-                    onChanged: enabled ? (value) {
-                      parametersMap.setPayTaxesFromTraditionalIra(value);
-                      onChanged();
-                    } : null,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            const Expanded(child: Text('Pay Taxes from Roth IRA')),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Transform.translate(
-                offset: const Offset(3, 0),
-                child: Transform.scale(
-                  scale: 0.7,
-                  child: Switch(
-                    value: parametersMap.getPayTaxesFromRothIra(),
-                    padding: EdgeInsets.zero,
-                    onChanged: enabled ? (value) {
-                      parametersMap.setPayTaxesFromRothIra(value);
-                      onChanged();
-                    } : null,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        const SizedBox(height: 8),
+        PaymentSourceOrderField(
+          label: 'Pay Taxes From',
+          sources: parametersMap.getPayTaxesFrom(),
+          onChanged: (sources) {
+            parametersMap.setPayTaxesFrom(sources);
+            onChanged();
+          },
+          help: 'The sources taxes are paid from, in the order they are tried.',
+          enabled: enabled,
         ),
       ],
     );

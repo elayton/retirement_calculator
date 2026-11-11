@@ -1,3 +1,16 @@
+enum PaymentSource {
+  cash('Cash'),
+  brokerage('Brokerage'),
+  traditionalIra('Traditional IRA'),
+  rothIra('Roth IRA'),
+  hsa('HSA');
+
+  /// Human-readable name displayed in the plan controls.
+  final String label;
+
+  const PaymentSource(this.label);
+}
+
 class PlanParameters {
 
   /* Expenses. */
@@ -33,11 +46,10 @@ class PlanParameters {
   double? rothIraContributions;
   double? rothIraConversion;
 
-  /* Tax payment ordering. */
+  /* Payment source ordering. */
 
-  bool? payTaxesFromBrokerage;
-  bool? payTaxesFromTraditionalIra;
-  bool? payTaxesFromRothIra;
+  List<PaymentSource>? payExpensesFrom;
+  List<PaymentSource>? payTaxesFrom;
 
   /// The expected size of the tax filer's household, used to work out the
   /// federal poverty level the premium tax credit is measured against.
@@ -63,9 +75,8 @@ class PlanParameters {
     this.brokerageContributions,
     this.rothIraContributions,
     this.rothIraConversion,
-    this.payTaxesFromBrokerage,
-    this.payTaxesFromTraditionalIra,
-    this.payTaxesFromRothIra,
+    this.payExpensesFrom,
+    this.payTaxesFrom,
     this.familyMembers,
   });
 
@@ -89,9 +100,8 @@ class PlanParameters {
     brokerageContributions = 0;
     rothIraContributions = 0;
     rothIraConversion = 100000;
-    payTaxesFromBrokerage = false;
-    payTaxesFromTraditionalIra = false;
-    payTaxesFromRothIra = true;
+    payExpensesFrom = [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra, PaymentSource.cash, PaymentSource.hsa];
+    payTaxesFrom = [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra, PaymentSource.cash, PaymentSource.hsa];
     familyMembers = 6;
   }
 
@@ -182,14 +192,11 @@ class PlanParametersMap {
   double getRothIraConversion() => _walk((age) => _parametersMap[age]?.rothIraConversion);
   void setRothIraConversion(double rothIraConversion) => _getParameters().rothIraConversion = rothIraConversion;
 
-  bool getPayTaxesFromBrokerage() => _walk((age) => _parametersMap[age]?.payTaxesFromBrokerage);
-  void setPayTaxesFromBrokerage(bool payTaxesFromBrokerage) => _getParameters().payTaxesFromBrokerage = payTaxesFromBrokerage;
+  List<PaymentSource>? getPayExpensesFrom() => _walk((age) => _parametersMap[age]?.payExpensesFrom);
+  void setPayExpensesFrom(List<PaymentSource>? payExpensesFrom) => _getParameters().payExpensesFrom = payExpensesFrom;
 
-  bool getPayTaxesFromTraditionalIra() => _walk((age) => _parametersMap[age]?.payTaxesFromTraditionalIra);
-  void setPayTaxesFromTraditionalIra(bool payTaxesFromTraditionalIra) => _getParameters().payTaxesFromTraditionalIra = payTaxesFromTraditionalIra;
-
-  bool getPayTaxesFromRothIra() => _walk((age) => _parametersMap[age]?.payTaxesFromRothIra);
-  void setPayTaxesFromRothIra(bool payTaxesFromRothIra) => _getParameters().payTaxesFromRothIra = payTaxesFromRothIra;
+  List<PaymentSource>? getPayTaxesFrom() => _walk((age) => _parametersMap[age]?.payTaxesFrom);
+  void setPayTaxesFrom(List<PaymentSource>? payTaxesFrom) => _getParameters().payTaxesFrom = payTaxesFrom;
 
   int getFamilyMembers() => _walk((age) => _parametersMap[age]?.familyMembers);
   void setFamilyMembers(int familyMembers) => _getParameters().familyMembers = familyMembers;

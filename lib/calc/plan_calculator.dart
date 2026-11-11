@@ -524,7 +524,8 @@ class PlanCalculator {
   /// A brokerage withdrawal is itself taxable, so the amount taken out has to
   /// cover the tax on the withdrawal as well as the tax owed.
   void _payTaxesFromBrokerage() {
-    if (!parametersMap.getPayTaxesFromBrokerage()) return;
+    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
+    if (!payTaxesFrom.contains(PaymentSource.brokerage)) return;
     if (!_isAfterRetirementAge()) return;
     if (next.unpaidTaxes <= 0) return;
 
@@ -573,7 +574,8 @@ class PlanCalculator {
   /// A traditional IRA withdrawal is taxed as ordinary income, so the amount
   /// taken out has to cover the tax on the withdrawal as well.
   void _payTaxesFromTraditionalIra() {
-    if (!parametersMap.getPayTaxesFromTraditionalIra()) return;
+    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
+    if (!payTaxesFrom.contains(PaymentSource.traditionalIra)) return;
     if (!_isAfterRetirementAge()) return;
     if (!_isAfterIraWithdrawalAge()) return;
     if (next.unpaidTaxes <= 0) return;
@@ -611,7 +613,8 @@ class PlanCalculator {
 
   /// Withdraw this year's tax from the Roth IRA when that option is set.
   void _payTaxesFromRothIra() {
-    if (!parametersMap.getPayTaxesFromRothIra()) return;
+    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
+    if (!payTaxesFrom.contains(PaymentSource.rothIra)) return;
     if (!_isAfterRetirementAge()) return;
     if (!_isAfterIraWithdrawalAge()) return;
     if (next.unpaidTaxes <= 0) return;
@@ -685,10 +688,12 @@ class PlanCalculator {
     _contributeTo401k();
     _contributeToHsa();
 
-    // TODO: Parameterize the ordering of these.
-    _payExpensesFromBrokerage();
-    _payExpensesFromTraditionalIra();
-    _payExpensesFromRothIra();
+    final payExpensesFrom = parametersMap.getPayExpensesFrom() ?? const [];
+    for (final source in payExpensesFrom) {
+      if (source == PaymentSource.brokerage) { _payExpensesFromBrokerage(); }
+      if (source == PaymentSource.traditionalIra) { _payExpensesFromTraditionalIra(); }
+      if (source == PaymentSource.rothIra) { _payExpensesFromRothIra(); }
+    }
 
     _transferFourOhOneKToTraditionalIra();
     _convertTraditionalIraToRothIra();
@@ -708,10 +713,12 @@ class PlanCalculator {
 
     _calculateTax();
 
-    // TODO: Parameterize the ordering of these.
-    _payTaxesFromBrokerage();
-    _payTaxesFromTraditionalIra();
-    _payTaxesFromRothIra();
+    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
+    for (final source in payTaxesFrom) {
+      if (source == PaymentSource.brokerage) { _payTaxesFromBrokerage(); }
+      if (source == PaymentSource.traditionalIra) { _payTaxesFromTraditionalIra(); }
+      if (source == PaymentSource.rothIra) { _payTaxesFromRothIra(); }
+    }
 
     _calculateMagi();
 

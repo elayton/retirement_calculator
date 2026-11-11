@@ -67,4 +67,68 @@ void main() {
       });
     });
   });
+
+  group('getPayTaxesFrom', () {
+    test('returns the ordered sources taxes are paid from', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters.withDefaults());
+      parametersMap.age = 60;
+
+      expect(parametersMap.getPayTaxesFrom(), [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra]);
+    });
+
+    test('returns the sources set for the current age', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
+      parametersMap.age = 60;
+      parametersMap.setPayTaxesFrom([PaymentSource.hsa, PaymentSource.brokerage]);
+
+      expect(parametersMap.getPayTaxesFrom(), [PaymentSource.hsa, PaymentSource.brokerage]);
+    });
+  });
+
+  group('setPayTaxesFrom', () {
+    test('sets the ordered sources for the current age', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
+      parametersMap.age = 60;
+      parametersMap.setPayTaxesFrom([PaymentSource.rothIra, PaymentSource.brokerage]);
+
+      expect(parametersMap.getPayTaxesFrom(), [PaymentSource.rothIra, PaymentSource.brokerage]);
+    });
+
+    test('overwrites the sources of the parameters for the current age', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters.withDefaults());
+      parametersMap.age = 60;
+      parametersMap.setPayTaxesFrom([PaymentSource.cash]);
+
+      parametersMap.setPayTaxesFrom([PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra]);
+
+      expect(parametersMap.getPayTaxesFrom(), [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra]);
+    });
+  });
+
+  group('getPayExpensesFrom', () {
+    test('returns the ordered sources expenses are paid from', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters.withDefaults());
+      parametersMap.age = 60;
+
+      expect(parametersMap.getPayExpensesFrom(), [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra]);
+    });
+
+    test('inherits the sources of the first age over a null list', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters.withDefaults());
+      parametersMap.age = 65;
+      parametersMap.setPayExpensesFrom(null);
+
+      expect(parametersMap.getPayExpensesFrom(), [PaymentSource.brokerage, PaymentSource.traditionalIra, PaymentSource.rothIra]);
+    });
+  });
+
+  group('setPayExpensesFrom', () {
+    test('sets the ordered sources for the current age', () {
+      final parametersMap = PlanParametersMap(minAge: 60, initial: PlanParameters());
+      parametersMap.age = 60;
+      parametersMap.setPayExpensesFrom([PaymentSource.brokerage, PaymentSource.rothIra]);
+
+      expect(parametersMap.getPayExpensesFrom(), [PaymentSource.brokerage, PaymentSource.rothIra]);
+    });
+  });
 }
