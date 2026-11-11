@@ -688,12 +688,11 @@ class PlanCalculator {
     _contributeTo401k();
     _contributeToHsa();
 
-    final payExpensesFrom = parametersMap.getPayExpensesFrom() ?? const [];
-    for (final source in payExpensesFrom) {
+    parametersMap.getPayExpensesFrom()?.forEach((source) {
       if (source == PaymentSource.brokerage) { _payExpensesFromBrokerage(); }
       if (source == PaymentSource.traditionalIra) { _payExpensesFromTraditionalIra(); }
       if (source == PaymentSource.rothIra) { _payExpensesFromRothIra(); }
-    }
+    });
 
     _transferFourOhOneKToTraditionalIra();
     _convertTraditionalIraToRothIra();
@@ -713,12 +712,11 @@ class PlanCalculator {
 
     _calculateTax();
 
-    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
-    for (final source in payTaxesFrom) {
+    parametersMap.getPayTaxesFrom()?.forEach((source) {
       if (source == PaymentSource.brokerage) { _payTaxesFromBrokerage(); }
       if (source == PaymentSource.traditionalIra) { _payTaxesFromTraditionalIra(); }
       if (source == PaymentSource.rothIra) { _payTaxesFromRothIra(); }
-    }
+    });
 
     _calculateMagi();
 
