@@ -29,13 +29,25 @@ class PlanSidebar extends StatelessWidget {
   final PlanTimeline timeline;
   final int age;
   final VoidCallback onChanged;
+  final Future<void> Function() onSave;
+  final Future<void> Function() onLoad;
   final double width;
 
   /// Whether the parameters may be edited; while no age row is selected they
   /// hold their value.
   final bool enabled;
 
-  const PlanSidebar({super.key, required this.parametersMap, required this.timeline, required this.age, required this.onChanged, this.width = planSidebarWidth, this.enabled = true});
+  const PlanSidebar({
+    super.key,
+    required this.parametersMap,
+    required this.timeline,
+    required this.age,
+    required this.onChanged,
+    required this.onSave,
+    required this.onLoad,
+    this.width = planSidebarWidth,
+    this.enabled = true,
+  });
 
   /// Whether the parameter shown may be cleared back to what it inherits; the
   /// first row holds the defaults that later rows inherit, so none of its
@@ -58,6 +70,37 @@ class PlanSidebar extends StatelessWidget {
             if (i > 0) const SizedBox(height: 4),
             _SidebarSection(title: title, children: _sectionFields(title, context, enabled)),
           ],
+          // Save the plan parameters to a file, or load one back in.
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+              ),
+              onPressed: onSave,
+              icon: const Icon(Icons.save),
+              label: const Text('Save Plan Parameters'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+              ),
+              onPressed: onLoad,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Load Plan Parameters'),
+            ),
+          ),
         ],
       ),
     );

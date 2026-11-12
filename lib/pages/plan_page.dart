@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/plan_models.dart';
@@ -22,17 +27,23 @@ class PlanPage extends StatefulWidget {
 
 class _PlanPageState extends State<PlanPage> {
 
-  final PlanTimeline _timeline = PlanTimeline();
-  late final PlanParametersMap _parametersMap = PlanParametersMap(
-    minAge: DateTime.now().year - PlanConstants.birthday.year,
-    initial: PlanParameters.withDefaults(),
-    initialMap: {
-      57: PlanParameters(familyMembers: 5),
-      61: PlanParameters(familyMembers: 4),
-      63: PlanParameters(familyMembers: 3),
-      67: PlanParameters(familyMembers: 2),
-    },
-  );
+  PlanTimeline _timeline = PlanTimeline();
+  late PlanParametersMap _parametersMap;
+
+  @override
+  void initState() {
+    super.initState();
+    _parametersMap = PlanParametersMap(
+      minAge: DateTime.now().year - PlanConstants.birthday.year,
+      initial: PlanParameters.withDefaults(),
+      initialMap: {
+        57: PlanParameters(familyMembers: 5),
+        61: PlanParameters(familyMembers: 4),
+        63: PlanParameters(familyMembers: 3),
+        67: PlanParameters(familyMembers: 2),
+      },
+    );
+  }
 
   /// The age of the row the sidebar is showing; tapping a row in the table
   /// selects it, and the sidebar then shows that age's parameters.
@@ -71,6 +82,8 @@ class _PlanPageState extends State<PlanPage> {
           age: selectedAge,
           enabled: _selectedAge != null,
           onChanged: () => setState(() {}),
+          onSave: _savePlanParameters,
+          onLoad: _loadPlanParameters,
         );
         final table = SizedBox(width: double.infinity, child: _planTable(context, columns, rows, timeline));
 
@@ -96,6 +109,50 @@ class _PlanPageState extends State<PlanPage> {
   void _selectAge(int age) {
     setState(() => _selectedAge = _selectedAge == age ? null : age);
   }
+
+  /// Write the current plan parameters map and timeline to a plan file.
+  Future<void> _savePlanParameters() async {
+    final json = jsonEncode(<String, Object?>{
+      ..._parametersMap.toJson(),
+      'timeline': _timeline.toJson(),
+    });
+    final saved = await FilePicker.saveFile(
+      fileName: 'retirement_plan_parameters.json',
+      bytes: Uint8List.fromList(utf8.encode(json)),
+      mimeType: 'application/json',
+      dialogTitle: 'Save Plan Parameters',
+    );
+    if (saved == null) return;
+
+    _showPlanParametersMessage('Plan parameters saved.');
+  }
+
+  /// Prompt for a plan file and load its parameters and timeline into the plan.
+  Future<void> _loadPlanParameters() async {
+    final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['json']);
+    final path = file?.path;
+    if (file == null || path == null) return;
+
+    try {
+      final contents = await File(path).readAsString();
+      final json = jsonDecode(contents) as Map<String, Object?>;
+      final parametersMap = PlanParametersMap.fromJson(json);
+      final savedTimeline = json['timeline'];
+      final timeline = savedTimeline is Map
+          ? PlanTimeline.fromJson(Map<String, Object?>.from(savedTimeline.map((key, value) => MapEntry('$key', value))))
+          : PlanTimeline();
+      setState(() {
+        _parametersMap = parametersMap;
+        _timeline = timeline;
+        _selectedAge = null;
+      });
+      _showPlanParametersMessage('Plan parameters loaded.');
+    } catch (e) {
+      _showPlanParametersMessage('Failed to load plan parameters: $e');
+    }
+  }
+
+  void _showPlanParametersMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
   /// Row tint: working years orange, retired years green, except for the
   /// stretch between retirement and penalty-free IRA withdrawals, which is blue

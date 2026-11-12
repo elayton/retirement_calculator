@@ -9,6 +9,14 @@ enum PaymentSource {
   final String label;
 
   const PaymentSource(this.label);
+
+  /// The source a saved plan names, or null when it names none.
+  static PaymentSource? sourceFromName(String? name) {
+    for (final source in PaymentSource.values) {
+      if (source.name == name) return source;
+    }
+    return null;
+  }
 }
 
 class PlanParameters {
@@ -105,6 +113,74 @@ class PlanParameters {
     familyMembers = 6;
   }
 
+  /// The parameters as a plan file: each field named alongside its value, the
+  /// payment sources named as they are saved, and the unset fields left null.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'budget': budget,
+    'medicalInsurance': medicalInsurance,
+    'premiumTaxCredits': premiumTaxCredits,
+    'medicare': medicare,
+    'inflationRate': inflationRate,
+    'baseSalary': baseSalary,
+    'bonusRate': bonusRate,
+    'employee401kContributionRate': employee401kContributionRate,
+    'employer401kContributionRate': employer401kContributionRate,
+    'cashGrowthRate': cashGrowthRate,
+    'brokerageGrowthRate': brokerageGrowthRate,
+    'fourOhOneKGrowthRate': fourOhOneKGrowthRate,
+    'traditionalIraGrowthRate': traditionalIraGrowthRate,
+    'rothIraGrowthRate': rothIraGrowthRate,
+    'hsaInvestmentThreshold': hsaInvestmentThreshold,
+    'hsaGrowthRate': hsaGrowthRate,
+    'brokerageContributions': brokerageContributions,
+    'rothIraContributions': rothIraContributions,
+    'rothIraConversion': rothIraConversion,
+    'payExpensesFrom': payExpensesFrom?.map((source) => source.name).toList(),
+    'payTaxesFrom': payTaxesFrom?.map((source) => source.name).toList(),
+    'familyMembers': familyMembers,
+  };
+
+  /// Rebuild from a plan file's [json]; fields left out or null are unset, and
+  /// so inherit from the parameters of the ages below them.
+  static PlanParameters fromJson(Map<String, Object?> json) {
+    return PlanParameters(
+      budget: (json['budget'] as num?)?.toDouble(),
+      medicalInsurance: (json['medicalInsurance'] as num?)?.toDouble(),
+      premiumTaxCredits: (json['premiumTaxCredits'] as num?)?.toDouble(),
+      medicare: (json['medicare'] as num?)?.toDouble(),
+      inflationRate: (json['inflationRate'] as num?)?.toDouble(),
+      baseSalary: (json['baseSalary'] as num?)?.toDouble(),
+      bonusRate: (json['bonusRate'] as num?)?.toDouble(),
+      employee401kContributionRate: (json['employee401kContributionRate'] as num?)?.toDouble(),
+      employer401kContributionRate: (json['employer401kContributionRate'] as num?)?.toDouble(),
+      cashGrowthRate: (json['cashGrowthRate'] as num?)?.toDouble(),
+      brokerageGrowthRate: (json['brokerageGrowthRate'] as num?)?.toDouble(),
+      fourOhOneKGrowthRate: (json['fourOhOneKGrowthRate'] as num?)?.toDouble(),
+      traditionalIraGrowthRate: (json['traditionalIraGrowthRate'] as num?)?.toDouble(),
+      rothIraGrowthRate: (json['rothIraGrowthRate'] as num?)?.toDouble(),
+      hsaInvestmentThreshold: (json['hsaInvestmentThreshold'] as num?)?.toDouble(),
+      hsaGrowthRate: (json['hsaGrowthRate'] as num?)?.toDouble(),
+      brokerageContributions: (json['brokerageContributions'] as num?)?.toDouble(),
+      rothIraContributions: (json['rothIraContributions'] as num?)?.toDouble(),
+      rothIraConversion: (json['rothIraConversion'] as num?)?.toDouble(),
+      payExpensesFrom: _sourcesFromJson(json['payExpensesFrom']),
+      payTaxesFrom: _sourcesFromJson(json['payTaxesFrom']),
+      familyMembers: (json['familyMembers'] as num?)?.toInt(),
+    );
+  }
+
+  /// The payment sources a saved source list names, in the order saved; names
+  /// that name no source are dropped.
+  static List<PaymentSource>? _sourcesFromJson(Object? value) {
+    if (value is! List) return null;
+
+    final sources = <PaymentSource>[];
+    for (final entry in value) {
+      final source = PaymentSource.sourceFromName(entry is String ? entry : null);
+      if (source != null) sources.add(source);
+    }
+    return sources;
+  }
 }
 
 class PlanParametersMap {
@@ -121,6 +197,10 @@ class PlanParametersMap {
         _parametersMap[age] = parameters;
       }
     });
+
+    // The age of the parameters being shown; the sidebar sets it to the
+    // selected age, and a map built from a plan file starts at its first age.
+    age = minAge;
   }
 
   dynamic _walk(dynamic Function(int age) func) {
@@ -200,5 +280,39 @@ class PlanParametersMap {
 
   int getFamilyMembers() => _walk((age) => _parametersMap[age]?.familyMembers);
   void setFamilyMembers(int familyMembers) => _getParameters().familyMembers = familyMembers;
+
+  /// The parameters as a plan file: the first age alongside the parameters
+  /// recorded for each age.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'minAge': minAge,
+    'parameters': <String, Object?>{
+      for (final entry in _parametersMap.entries) '${entry.key}': entry.value.toJson(),
+    },
+  };
+
+  /// Rebuild a plan parameters map from a plan file's [json].
+  static PlanParametersMap fromJson(Map<String, Object?> json) {
+    final minAge = (json['minAge'] as num?)?.toInt() ?? 0;
+    final parameters = <int, PlanParameters>{};
+
+    final savedParameters = json['parameters'];
+    if (savedParameters is Map) {
+      for (final entry in savedParameters.entries) {
+        final age = int.parse(entry.key as String);
+        if (age < minAge) continue;
+
+        final saved = entry.value;
+        if (saved is Map) {
+          parameters[age] = PlanParameters.fromJson(Map<String, Object?>.from(saved.map((key, value) => MapEntry('$key', value))));
+        }
+      }
+    }
+
+    return PlanParametersMap(
+      minAge: minAge,
+      initial: parameters[minAge] ?? PlanParameters.withDefaults(),
+      initialMap: parameters,
+    );
+  }
 
 }
