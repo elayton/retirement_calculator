@@ -20,6 +20,10 @@ const _stepperWidth = 24.0;
 /// Height of a single stepper arrow; two of them stack into the column.
 const _stepperHeight = 16.0;
 
+/// How far the stepper column sits above the top of the field, so the arrow
+/// stack reads above the value box it steps.
+const _stepperRaise = 6.0;
+
 /// Gap between the value box and the stepper column.
 const _stepperGap = 4.0;
 
@@ -157,15 +161,25 @@ Widget _fieldRow(String label, Widget box, {Widget? stepper, String? help}) {
     children: [
       Expanded(child: Text(label)),
       const SizedBox(width: _labelGap),
-      // The stepper holds no text and so reports no baseline, which leaves this
-      // row reporting the box's while the stepper is centred against it.
+      // The stepper column holds no text and so reports no baseline, which
+      // leaves this row reporting the box's. The column also runs taller than
+      // the box beside it, so the row has to top out at the top of the field;
+      // centering it would push the box down and drop the label off the value's
+      // baseline. The column is then nudged above the field so the arrows sit
+      // above the value they step.
       Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           box,
           const SizedBox(width: _stepperGap),
-          SizedBox(width: _stepperWidth, child: stepper),
+          SizedBox(
+            width: _stepperWidth,
+            child: Transform.translate(
+              offset: const Offset(0, -_stepperRaise),
+              child: stepper,
+            ),
+          ),
         ],
       ),
     ],
