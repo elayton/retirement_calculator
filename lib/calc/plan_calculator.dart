@@ -86,8 +86,6 @@ class PlanCalculator {
   /// bought, and in the year Medicare takes over.
   bool _isMagiYear() => _isAfterRetirementAge() && !_isAfterMedicareAge();
 
-  bool _isAfterRothConversionAge() => parametersMap.age > timeline.rothIraConversionAge;
-
   /// Whether primary Social Security has started.
   bool _isAfterPrimarySocialSecurityAge() => parametersMap.age > timeline.primarySocialSecurityAge;
 
@@ -159,32 +157,87 @@ class PlanCalculator {
       next.socialSecurity += benefit;
     }
 
+    // Immediately pay expenses from the Social Security.
     next.unpaidExpenses -= next.totalOf(PlanColumn.income);
   }
 
   void _contributeTo401k() {
-    if (!_isAfterRetirementAge()) {
-      final employeeContribution = _percentageOf(next.salary, parametersMap.getEmployee401kContributionRate());
-      next.add(PlanColumn.fourOhOneK, "Employee 401(k) Contribution", employeeContribution);
+    if (_isAfterRetirementAge()) return;
 
-      // The contribution is pre-tax, so it is out of the income.
-      next.agiDeductions += employeeContribution;
+    final employeeContribution = _percentageOf(next.salary, parametersMap.getEmployee401kContributionRate());
+    next.add(PlanColumn.fourOhOneK, "Employee 401(k) Contribution", employeeContribution);
 
-      final employerContribution = _percentageOf(next.salary, parametersMap.getEmployer401kContributionRate());
-      next.add(PlanColumn.fourOhOneK, "Employer 401(k) Contribution", employerContribution);
+    // The contribution is pre-tax, so it comes out of the income.
+    next.agiDeductions += employeeContribution;
+
+    final employerContribution = _percentageOf(next.salary, parametersMap.getEmployer401kContributionRate());
+    next.add(PlanColumn.fourOhOneK, "Employer 401(k) Contribution", employerContribution);
+  }
+
+  /// Contribute to cash.
+  void _contributeToCash() {
+    final contribution = parametersMap.getCashContribution() * _inflation;
+
+    if (contribution > 0) {
+      next.add(PlanColumn.cash, "Cash Contribution", contribution);
+    }
+  }
+
+  /// Contribute to a brokerage account.
+  void _contributeToBrokerage() {
+    final contribution = parametersMap.getBrokerageContribution() * _inflation;
+
+    if (contribution > 0) {
+      next.add(PlanColumn.brokerage, "Brokerage Contribution", contribution);
+    }
+  }
+
+  /// Contribute to a traditional IRA.
+  void _contributeToTraditionalIra() {
+    final contribution = min(parametersMap.getTraditionalIraContribution(), PlanConstants.iraContributionLimit) * _inflation;
+
+    if (contribution > 0) {
+      // The contribution is pre-tax, so it doesn't count against AGI.
+      next.agiDeductions += contribution;
+
+      next.add(PlanColumn.traditionalIra, "Traditional IRA Contribution", contribution);
+    }
+  }
+
+  /// Contribute to a Roth IRA.
+  void _contributeToRothIra() {
+    final contribution = min(parametersMap.getRothIraContribution(), PlanConstants.iraContributionLimit) * _inflation;
+
+    if (contribution > 0) {
+      next.add(PlanColumn.rothIra, "Roth IRA Contribution", contribution);
     }
   }
 
   void _contributeToHsa() {
-    if (!_isAfterRetirementAge()) {
-      final hsaContribution = PlanConstants.hsaContributionLimit * _inflation;
+    final hsaContribution = min(parametersMap.getHsaContribution(), PlanConstants.hsaContributionLimit) * _inflation;
+
+    if (hsaContribution > 0) {
       next.add(PlanColumn.hsa, "HSA Contribution", hsaContribution);
-
-      // The contribution is deductible, so it is out of the income.
-      next.agiDeductions += hsaContribution;
-
-      // TODO: Add employer HSA contributions.
     }
+
+    // The contribution is deductible, so it doesn't count against AGI.
+    next.agiDeductions += hsaContribution;
+
+    if (PlanConstants.employerHsaContribution > 0) {
+      next.add(PlanColumn.hsa, "Employer HSA Contribution", PlanConstants.employerHsaContribution);
+    }
+  }
+
+  /// Withdraw from the cash balance to pay unpaid expenses.
+  void _payExpensesFromCash() {
+    if (!_isAfterRetirementAge()) return;
+    if (next.unpaidExpenses <= 0) return;
+
+    final withdrawalAmount = min(next.unpaidExpenses, next.totalOf(PlanColumn.cash));
+    if (withdrawalAmount <= 0) return;
+
+    next.sub(PlanColumn.cash, "Pay Expenses", withdrawalAmount);
+    next.unpaidExpenses -= withdrawalAmount;
   }
 
   /// Withdraw from the brokerage account to pay unpaid expenses.
@@ -208,6 +261,7 @@ class PlanCalculator {
     final costBasisPortion = totalBrokerage > 0
         ? _brokerageCostBasis * withdrawalAmount / totalBrokerage
         : 0.0;
+
     // A withdrawal cannot produce a negative gain: at most the whole
     // withdrawal is return of capital, so the gain is floored at zero.
     final capitalGain = max(0.0, withdrawalAmount - costBasisPortion);
@@ -239,7 +293,7 @@ class PlanCalculator {
     next.ordinaryIncome += withdrawalAmount;
   }
 
-  /// Withdraw from the traditional IRA account to pay unpaid expenses.
+  /// Withdraw from the Roth IRA account to pay unpaid expenses.
   void _payExpensesFromRothIra() {
     if (!_isAfterRetirementAge()) return;
     if (!_isAfterIraWithdrawalAge()) return;
@@ -268,10 +322,8 @@ class PlanCalculator {
     next.add(PlanColumn.traditionalIra, "Transfer from 401(k)", transferAmount);
   }
 
-  void _convertTraditionalIraToRothIra() {
-    if (!_isAfterRetirementAge()) return;
-    if (!_isAfterRothConversionAge()) return;
-
+  /// Convert from a tratitional IRA to a Roth IRA.
+  void _doRothConversion() {
     final conversionAmount = min(parametersMap.getRothIraConversion(), next.totalOf(PlanColumn.traditionalIra));
     if (conversionAmount <= 0) return;
 
@@ -300,15 +352,15 @@ class PlanCalculator {
     if (distributionFactor == null || distributionFactor == 0) return;
 
     final balance = next.totalOf(PlanColumn.traditionalIra);
-    final rmd = balance / distributionFactor;
-    if (rmd <= 0) return;
+    final rmdAmount = balance / distributionFactor;
+    if (rmdAmount <= 0) return;
 
     // The withdrawal comes out of the traditional IRA, and with it the income
     // the year is taxed on.
-    next.sub(PlanColumn.traditionalIra, "Required Minimum Distribution", rmd);
-    next.add(PlanColumn.income, "Required Minimum Distribution", rmd);
-    next.traditionalIraWithdrawals += rmd;
-    next.ordinaryIncome += rmd;
+    next.sub(PlanColumn.traditionalIra, "Required Minimum Distribution", rmdAmount);
+    next.add(PlanColumn.income, "Required Minimum Distribution", rmdAmount);
+    next.traditionalIraWithdrawals += rmdAmount;
+    next.ordinaryIncome += rmdAmount;
   }
 
   /// Add a year of growth to the cash balance.
@@ -519,6 +571,25 @@ class PlanCalculator {
     return (amount < 1e-9 ? 0 : amount);
   }
 
+  /// Withdraw this year's tax from the cash balance when that option is set.
+  void _payTaxesFromCash() {
+    final payTaxesFrom = parametersMap.getPayTaxesFrom() ?? const [];
+    if (!payTaxesFrom.contains(PaymentSource.cash)) return;
+    if (!_isAfterRetirementAge()) return;
+    if (next.unpaidTaxes <= 0) return;
+
+    final balance = next.totalOf(PlanColumn.cash);
+    if (balance <= 0) return;
+
+    final withdrawalAmount = min(next.unpaidTaxes, balance);
+    if (withdrawalAmount <= 0) return;
+
+    next.sub(PlanColumn.cash, "Pay Taxes", withdrawalAmount);
+    _taxPaidThisYear += withdrawalAmount;
+    next.unpaidTaxes = _clampToZero(max(0.0, next.tax - _taxPaidThisYear));
+    // Withdrawals from cash are not taxable, so no need to add to income.
+  }
+
   /// Withdraw this year's tax from the brokerage account when that option is set.
   ///
   /// A brokerage withdrawal is itself taxable, so the amount taken out has to
@@ -686,17 +757,21 @@ class PlanCalculator {
     _receiveSocialSecurity();
 
     _contributeTo401k();
+    _contributeToCash();
+    _contributeToBrokerage();
+    _contributeToTraditionalIra();
+    _contributeToRothIra();
     _contributeToHsa();
 
     parametersMap.getPayExpensesFrom()?.forEach((source) {
+      if (source == PaymentSource.cash) { _payExpensesFromCash(); }
       if (source == PaymentSource.brokerage) { _payExpensesFromBrokerage(); }
       if (source == PaymentSource.traditionalIra) { _payExpensesFromTraditionalIra(); }
       if (source == PaymentSource.rothIra) { _payExpensesFromRothIra(); }
     });
 
     _transferFourOhOneKToTraditionalIra();
-    _convertTraditionalIraToRothIra();
-
+    _doRothConversion();
     _takeRmds();
 
     _growCash();
@@ -713,6 +788,7 @@ class PlanCalculator {
     _calculateTax();
 
     parametersMap.getPayTaxesFrom()?.forEach((source) {
+      if (source == PaymentSource.cash) { _payTaxesFromCash(); }
       if (source == PaymentSource.brokerage) { _payTaxesFromBrokerage(); }
       if (source == PaymentSource.traditionalIra) { _payTaxesFromTraditionalIra(); }
       if (source == PaymentSource.rothIra) { _payTaxesFromRothIra(); }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/plan_constants.dart';
 import '../models/plan_parameters.dart';
 import '../models/plan_timeline.dart';
+import '../utils/formatting.dart';
 import 'plan_widgets.dart';
 
 /// Floor for every rate field: a rate may be negative, down to a total wipeout.
@@ -16,7 +17,7 @@ const planSidebarWidth = 300.0;
 
 /// Sidebar section titles, in display order. Each one stands in for a group of
 /// plan parameters; sections without controls yet render a placeholder body.
-const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Growth', 'Payments', 'Health'];
+const planSidebarSections = <String>['Timeline', 'Expenses', 'Salary', 'Contributions / Conversions', 'Growth', 'Payments', 'Health'];
 
 /// The left sidebar of the plan page: a vertical stack of accordions, one per
 /// group of plan parameters.
@@ -112,6 +113,7 @@ class PlanSidebar extends StatelessWidget {
       'Timeline' => [_timelineFields(context)],
       'Expenses' => [_expenseFields(context, enabled)],
       'Salary' => [_salaryFields(context, enabled)],
+      'Contributions / Conversions' => [_contributionFields(context, enabled)],
       'Growth' => [_growthFields(context, enabled)],
       'Payments' => [_paymentFields(context, enabled)],
       'Health' => [_healthFields(context, enabled)],
@@ -125,7 +127,7 @@ class PlanSidebar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         IntegerField(
-          label: 'Retirement Age',
+          label: 'Retirement',
           value: timeline.retirementAge,
           help: 'Age at which salary income stops and retirement spending begins.',
           onChanged: (value) {
@@ -135,7 +137,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         IntegerField(
-          label: 'Primary Social Security Age',
+          label: 'Primary Soc. Sec.',
           value: timeline.primarySocialSecurityAge,
           minValue: 62,
           maxValue: 70,
@@ -147,7 +149,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         IntegerField(
-          label: 'Secondary Social Security Age',
+          label: 'Secondary Soc. Sec.',
           value: timeline.secondarySocialSecurityAge,
           minValue: 62,
           maxValue: 70,
@@ -158,21 +160,21 @@ class PlanSidebar extends StatelessWidget {
           },
         ),
         Divider(height: 20, color: Theme.of(context).colorScheme.outlineVariant),
-        ConstantField(
-          label: '401(k) Withdrawal Age',
-          value: PlanConstants.fourOhOneKWthdrawalAge,
+        StringField(
+          label: '401(k) Withdrawals',
+          value: '${PlanConstants.fourOhOneKWthdrawalAge}',
           help: 'Rule of 55 allows penalty-free 401(k) withdrawals.',
         ),
         const SizedBox(height: 8),
-        ConstantField(
-          label: 'IRA Withdrawal Age',
-          value: PlanConstants.iraWithdrawalAge,
+        StringField(
+          label: 'IRA Withdrawals',
+          value: '${PlanConstants.iraWithdrawalAge}',
           help: 'Earliest penalty-free IRA withdrawals.',
         ),
         const SizedBox(height: 8),
-        ConstantField(
-          label: 'Medicare Start Age',
-          value: PlanConstants.medicareStartAge,
+        StringField(
+          label: 'Medicare Start',
+          value: '${PlanConstants.medicareStartAge}',
           help: 'Medicare premiums replace medical insurance from this age.',
         ),
       ],
@@ -233,7 +235,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'Inflation Rate',
+          label: 'Inflation',
           value: parametersMap.getInflationRate(),
           overridden: parametersMap.parametersFor(age).inflationRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).inflationRate = null; onChanged(); } : null,
@@ -273,7 +275,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'Bonus Rate',
+          label: 'Bonus',
           value: parametersMap.getBonusRate(),
           overridden: parametersMap.parametersFor(age).bonusRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).bonusRate = null; onChanged(); } : null,
@@ -292,13 +294,122 @@ class PlanSidebar extends StatelessWidget {
     );
   }
 
+  /// The controls for the retirement contributions and conversions.
+  Widget _contributionFields(BuildContext context, bool enabled) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        NumberField(
+          label: 'Cash',
+          value: parametersMap.getCashContribution(),
+          overridden: parametersMap.parametersFor(age).cashContribution != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).cashContribution = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'Annual contribution to the savings balance.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setCashContribution(value);
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
+        NumberField(
+          label: 'Brokerage',
+          value: parametersMap.getBrokerageContribution(),
+          overridden: parametersMap.parametersFor(age).brokerageContribution != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).brokerageContribution = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'Annual contribution to the taxable brokerage balance.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setBrokerageContribution(value);
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
+        NumberField(
+          label: 'Traditional IRA',
+          value: parametersMap.getTraditionalIraContribution(),
+          overridden: parametersMap.parametersFor(age).traditionalIraContribution != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).traditionalIraContribution = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'Annual contribution to the pre-tax traditional IRA balance.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setTraditionalIraContribution(value);
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
+        NumberField(
+          label: 'Roth IRA',
+          value: parametersMap.getRothIraContribution(),
+          overridden: parametersMap.parametersFor(age).rothIraContribution != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).rothIraContribution = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'Annual contribution to the after-tax Roth IRA balance.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setRothIraContribution(value);
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
+        NumberField(
+          label: 'HSA',
+          value: parametersMap.getHsaContribution(),
+          overridden: parametersMap.parametersFor(age).hsaContribution != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).hsaContribution = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'Annual contribution to the health savings account.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setHsaContribution(value);
+            onChanged();
+          },
+        ),
+        Divider(height: 20, color: Theme.of(context).colorScheme.outlineVariant),
+        StringField(
+          label: 'IRA Limit',
+          value: formatCurrency(PlanConstants.iraContributionLimit),
+          help: 'The maximum amount that can be contributed to an IRA each year.',
+        ),
+        StringField(
+          label: 'HSA Limit',
+          value: formatCurrency(PlanConstants.hsaContributionLimit),
+          help: 'The maximum amount that can be contributed to an HSA each year.',
+        ),
+        Divider(height: 20, color: Theme.of(context).colorScheme.outlineVariant),
+        NumberField(
+          label: 'Roth IRA Conversion',
+          value: parametersMap.getRothIraConversion(),
+          overridden: parametersMap.parametersFor(age).rothIraConversion != null,
+          onCleared: _canClear ? () { parametersMap.parametersFor(age).rothIraConversion = null; onChanged(); } : null,
+          step: 1000,
+          prefix: r'$',
+          help: 'The amount moved from the traditional IRA to the Roth IRA.',
+          enabled: enabled,
+          onChanged: (value) {
+            parametersMap.setRothIraConversion(value);
+            onChanged();
+          },
+        ),
+      ],
+    );
+  }
+
   /// The controls for the annual return assumed on each account.
   Widget _growthFields(BuildContext context, bool enabled) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         NumberField(
-          label: 'Cash Growth Rate',
+          label: 'Cash Growth',
           value: parametersMap.getCashGrowthRate(),
           overridden: parametersMap.parametersFor(age).cashGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).cashGrowthRate = null; onChanged(); } : null,
@@ -315,7 +426,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'Brokerage Growth Rate',
+          label: 'Brokerage',
           value: parametersMap.getBrokerageGrowthRate(),
           overridden: parametersMap.parametersFor(age).brokerageGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).brokerageGrowthRate = null; onChanged(); } : null,
@@ -332,7 +443,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: '401(k) Growth Rate',
+          label: '401(k)',
           value: parametersMap.getFourOhOneKGrowthRate(),
           overridden: parametersMap.parametersFor(age).fourOhOneKGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).fourOhOneKGrowthRate = null; onChanged(); } : null,
@@ -349,7 +460,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'Traditional IRA Growth Rate',
+          label: 'Traditional IRA',
           value: parametersMap.getTraditionalIraGrowthRate(),
           overridden: parametersMap.parametersFor(age).traditionalIraGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).traditionalIraGrowthRate = null; onChanged(); } : null,
@@ -366,7 +477,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'Roth IRA Growth Rate',
+          label: 'Roth IRA',
           value: parametersMap.getRothIraGrowthRate(),
           overridden: parametersMap.parametersFor(age).rothIraGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).rothIraGrowthRate = null; onChanged(); } : null,
@@ -383,7 +494,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         NumberField(
-          label: 'HSA Growth Rate',
+          label: 'HSA',
           value: parametersMap.getHsaGrowthRate(),
           overridden: parametersMap.parametersFor(age).hsaGrowthRate != null,
           onCleared: _canClear ? () { parametersMap.parametersFor(age).hsaGrowthRate = null; onChanged(); } : null,

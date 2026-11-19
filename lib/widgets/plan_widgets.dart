@@ -424,13 +424,13 @@ class NumberFieldState extends State<NumberField> {
   }
 }
 
-/// A labeled age that cannot be edited.
-class ConstantField extends StatelessWidget {
+/// A labeled value that cannot be edited.
+class StringField extends StatelessWidget {
   final String label;
-  final int value;
+  final String value;
   final String? help;
 
-  const ConstantField({super.key, required this.label, required this.value, this.help});
+  const StringField({super.key, required this.label, required this.value, this.help});
 
   @override
   Widget build(BuildContext context) {
@@ -443,7 +443,7 @@ class ConstantField extends StatelessWidget {
         height: _valueBoxHeight,
         child: Align(
           alignment: Alignment.centerRight,
-          child: Text('$value', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          child: Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ),
       ),
       help: help,

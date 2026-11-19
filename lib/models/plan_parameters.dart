@@ -40,10 +40,11 @@ class PlanParameters {
 
   /* Contributions and conversions. */
 
-  double? cashContributions;
-  double? brokerageContributions;
-  double? traditionalIraContributions;
-  double? rothIraContributions;
+  double? cashContribution;
+  double? brokerageContribution;
+  double? traditionalIraContribution;
+  double? rothIraContribution;
+  double? hsaContribution;
   double? rothIraConversion;
 
   /* Investment growth rates. */
@@ -75,10 +76,11 @@ class PlanParameters {
     this.bonusRate,
     this.employee401kContributionRate,
     this.employer401kContributionRate,
-    this.cashContributions,
-    this.brokerageContributions,
-    this.traditionalIraContributions,
-    this.rothIraContributions,
+    this.cashContribution,
+    this.brokerageContribution,
+    this.traditionalIraContribution,
+    this.rothIraContribution,
+    this.hsaContribution,
     this.rothIraConversion,
     this.cashGrowthRate,
     this.brokerageGrowthRate,
@@ -102,10 +104,11 @@ class PlanParameters {
     bonusRate = 10;
     employee401kContributionRate = 6;
     employer401kContributionRate = 3;
-    cashContributions = 0;
-    brokerageContributions = 0;
-    traditionalIraContributions = 0;
-    rothIraContributions = 0;
+    cashContribution = 0;
+    brokerageContribution = 0;
+    traditionalIraContribution = 0;
+    rothIraContribution = 0;
+    hsaContribution = 0;
     rothIraConversion = 0;
     cashGrowthRate = 1;
     brokerageGrowthRate = 5;
@@ -131,10 +134,11 @@ class PlanParameters {
     'bonusRate': bonusRate,
     'employee401kContributionRate': employee401kContributionRate,
     'employer401kContributionRate': employer401kContributionRate,
-    'cashContributions': cashContributions,
-    'brokerageContributions': brokerageContributions,
-    'traditionalIraContributions': traditionalIraContributions,
-    'rothIraContributions': rothIraContributions,
+    'cashContribution': cashContribution,
+    'brokerageContribution': brokerageContribution,
+    'traditionalIraContribution': traditionalIraContribution,
+    'rothIraContribution': rothIraContribution,
+    'hsaContribution': hsaContribution,
     'rothIraConversion': rothIraConversion,
     'cashGrowthRate': cashGrowthRate,
     'brokerageGrowthRate': brokerageGrowthRate,
@@ -161,10 +165,11 @@ class PlanParameters {
       bonusRate: (json['bonusRate'] as num?)?.toDouble(),
       employee401kContributionRate: (json['employee401kContributionRate'] as num?)?.toDouble(),
       employer401kContributionRate: (json['employer401kContributionRate'] as num?)?.toDouble(),
-      cashContributions: (json['cashContributions'] as num?)?.toDouble(),
-      brokerageContributions: (json['brokerageContributions'] as num?)?.toDouble(),
-      traditionalIraContributions: (json['traditionalIraContributions'] as num?)?.toDouble(),
-      rothIraContributions: (json['rothIraContributions'] as num?)?.toDouble(),
+      cashContribution: (json['cashContribution'] as num?)?.toDouble(),
+      brokerageContribution: (json['brokerageContribution'] as num?)?.toDouble(),
+      traditionalIraContribution: (json['traditionalIraContribution'] as num?)?.toDouble(),
+      rothIraContribution: (json['rothIraContribution'] as num?)?.toDouble(),
+      hsaContribution: (json['hsaContribution'] as num?)?.toDouble(),
       rothIraConversion: (json['rothIraConversion'] as num?)?.toDouble(),
       cashGrowthRate: (json['cashGrowthRate'] as num?)?.toDouble(),
       brokerageGrowthRate: (json['brokerageGrowthRate'] as num?)?.toDouble(),
@@ -252,17 +257,20 @@ class PlanParametersMap {
   double getEmployer401kContributionRate() => _walk((age) => _parametersMap[age]?.employer401kContributionRate);
   void setEmployer401kContributionRate(double employer401kContributionRate) => _getParameters().employer401kContributionRate = employer401kContributionRate;
 
-  double getCashContributions() => _walk((age) => _parametersMap[age]?.cashContributions);
-  void setCashContributions(double cashContributions) => _getParameters().cashContributions = cashContributions;
+  double getCashContribution() => _walk((age) => _parametersMap[age]?.cashContribution);
+  void setCashContribution(double cashContributions) => _getParameters().cashContribution = cashContributions;
 
-  double getBrokerageContributions() => _walk((age) => _parametersMap[age]?.brokerageContributions);
-  void setBrokerageContributions(double brokerageContributions) => _getParameters().brokerageContributions = brokerageContributions;
+  double getBrokerageContribution() => _walk((age) => _parametersMap[age]?.brokerageContribution);
+  void setBrokerageContribution(double brokerageContributions) => _getParameters().brokerageContribution = brokerageContributions;
 
-  double getTraditionalIraContributions() => _walk((age) => _parametersMap[age]?.traditionalIraContributions);
-  void setTraditionalIraContributions(double traditionalIraContributions) => _getParameters().traditionalIraContributions = traditionalIraContributions;
+  double getTraditionalIraContribution() => _walk((age) => _parametersMap[age]?.traditionalIraContribution);
+  void setTraditionalIraContribution(double traditionalIraContributions) => _getParameters().traditionalIraContribution = traditionalIraContributions;
 
-  double getRothIraContributions() => _walk((age) => _parametersMap[age]?.rothIraContributions);
-  void setRothIraContributions(double rothIraContributions) => _getParameters().rothIraContributions = rothIraContributions;
+  double getRothIraContribution() => _walk((age) => _parametersMap[age]?.rothIraContribution);
+  void setRothIraContribution(double rothIraContributions) => _getParameters().rothIraContribution = rothIraContributions;
+
+  double getHsaContribution() => _walk((age) => _parametersMap[age]?.hsaContribution);
+  void setHsaContribution(double hsaContributions) => _getParameters().hsaContribution = hsaContributions;
 
   double getRothIraConversion() => _walk((age) => _parametersMap[age]?.rothIraConversion);
   void setRothIraConversion(double rothIraConversion) => _getParameters().rothIraConversion = rothIraConversion;

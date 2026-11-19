@@ -20,15 +20,13 @@ void main() {
       final timeline = PlanTimeline()
         ..retirementAge = 55
         ..primarySocialSecurityAge = 67
-        ..secondarySocialSecurityAge = 66
-        ..rothIraConversionAge = 63;
+        ..secondarySocialSecurityAge = 66;
 
       final restored = PlanTimeline.fromJson(timeline.toJson());
 
       expect(restored.retirementAge, 55);
       expect(restored.primarySocialSecurityAge, 67);
       expect(restored.secondarySocialSecurityAge, 66);
-      expect(restored.rothIraConversionAge, 63);
     });
   });
 

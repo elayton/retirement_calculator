@@ -83,6 +83,8 @@ abstract final class PlanConstants {
   static const double iraContributionLimit = 8600;
   static const double hsaContributionLimit = 9750;
 
+  static const double employerHsaContribution = 1000;
+
   static const double standardDeduction = 32200;
 
   /// Each entry is a (threshold, rate %) pair; a null threshold means no cap.
