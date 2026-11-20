@@ -33,10 +33,10 @@ class _PlanPageState extends State<PlanPage> {
   @override
   void initState() {
     super.initState();
-    _parametersMap = PlanParametersMap(
+
+    _parametersMap = PlanParametersMap.initial(
       minAge: DateTime.now().year - PlanConstants.birthday.year,
-      initial: PlanParameters.withDefaults(),
-      initialMap: {
+      initialOverrides: {
         57: PlanParameters(familyMembers: 5),
         61: PlanParameters(familyMembers: 4),
         63: PlanParameters(familyMembers: 3),
@@ -120,7 +120,7 @@ class _PlanPageState extends State<PlanPage> {
       fileName: 'retirement_plan_parameters.json',
       bytes: Uint8List.fromList(utf8.encode(json)),
       mimeType: 'application/json',
-      dialogTitle: 'Save Plan Parameters',
+      dialogTitle: 'Save',
     );
     if (saved == null) return;
 

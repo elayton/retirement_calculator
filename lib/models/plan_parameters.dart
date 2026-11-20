@@ -1,3 +1,5 @@
+import 'plan_constants.dart';
+
 enum PaymentSource {
   cash('Cash'),
   brokerage('Brokerage'),
@@ -76,12 +78,12 @@ class PlanParameters {
     this.bonusRate,
     this.employee401kContributionRate,
     this.employer401kContributionRate,
-    this.cashContribution,
-    this.brokerageContribution,
-    this.traditionalIraContribution,
-    this.rothIraContribution,
-    this.hsaContribution,
-    this.rothIraConversion,
+    this.cashContribution = 0,
+    this.brokerageContribution = 0,
+    this.traditionalIraContribution = 0,
+    this.rothIraContribution = 0,
+    this.hsaContribution = 0,
+    this.rothIraConversion = 0,
     this.cashGrowthRate,
     this.brokerageGrowthRate,
     this.fourOhOneKGrowthRate,
@@ -205,6 +207,28 @@ class PlanParametersMap {
 
   late int age;
 
+  /// The parameters for a new plan: the parameters at [minAge] seeded with
+  /// defaults, and the parameters for the ages above it up to the longevity
+  /// age, unset. The ages named in [initialOverrides] take those parameters
+  /// instead.
+  factory PlanParametersMap.initial({required int minAge, Map<int, PlanParameters>? initialOverrides}) {
+    final initialMap = <int, PlanParameters>{};
+    for (var age = minAge; age <= PlanConstants.longevityAge; ++age) {
+      initialMap[age] = age == minAge ? PlanParameters.withDefaults() : PlanParameters();
+    }
+    initialOverrides?.forEach((age, parameters) {
+      if (age >= minAge) {
+        initialMap[age] = parameters;
+      }
+    });
+
+    return PlanParametersMap(
+      minAge: minAge,
+      initial: PlanParameters.withDefaults(),
+      initialMap: initialMap,
+    );
+  }
+
   PlanParametersMap({required this.minAge, required PlanParameters initial, Map<int, PlanParameters>? initialMap}) {
     _parametersMap[minAge] = initial;
     initialMap?.forEach((age, parameters) {
@@ -216,6 +240,31 @@ class PlanParametersMap {
     // The age of the parameters being shown; the sidebar sets it to the
     // selected age, and a map built from a plan file starts at its first age.
     age = minAge;
+  }
+
+  /// Rebuild a plan parameters map from a plan file's [json].
+  factory PlanParametersMap.fromJson(Map<String, Object?> json) {
+    final minAge = (json['minAge'] as num?)?.toInt() ?? 0;
+    final parameters = <int, PlanParameters>{};
+
+    final savedParameters = json['parameters'];
+    if (savedParameters is Map) {
+      for (final entry in savedParameters.entries) {
+        final age = int.parse(entry.key as String);
+        if (age < minAge) continue;
+
+        final saved = entry.value;
+        if (saved is Map) {
+          parameters[age] = PlanParameters.fromJson(Map<String, Object?>.from(saved.map((key, value) => MapEntry('$key', value))));
+        }
+      }
+    }
+
+    return PlanParametersMap(
+      minAge: minAge,
+      initial: parameters[minAge] ?? PlanParameters.withDefaults(),
+      initialMap: parameters,
+    );
   }
 
   dynamic _walk(dynamic Function(int age) func) {
@@ -313,30 +362,5 @@ class PlanParametersMap {
       for (final entry in _parametersMap.entries) '${entry.key}': entry.value.toJson(),
     },
   };
-
-  /// Rebuild a plan parameters map from a plan file's [json].
-  static PlanParametersMap fromJson(Map<String, Object?> json) {
-    final minAge = (json['minAge'] as num?)?.toInt() ?? 0;
-    final parameters = <int, PlanParameters>{};
-
-    final savedParameters = json['parameters'];
-    if (savedParameters is Map) {
-      for (final entry in savedParameters.entries) {
-        final age = int.parse(entry.key as String);
-        if (age < minAge) continue;
-
-        final saved = entry.value;
-        if (saved is Map) {
-          parameters[age] = PlanParameters.fromJson(Map<String, Object?>.from(saved.map((key, value) => MapEntry('$key', value))));
-        }
-      }
-    }
-
-    return PlanParametersMap(
-      minAge: minAge,
-      initial: parameters[minAge] ?? PlanParameters.withDefaults(),
-      initialMap: parameters,
-    );
-  }
 
 }

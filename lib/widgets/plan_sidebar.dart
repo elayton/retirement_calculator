@@ -72,35 +72,38 @@ class PlanSidebar extends StatelessWidget {
             _SidebarSection(title: title, children: _sectionFields(title, context, enabled)),
           ],
           // Save the plan parameters to a file, or load one back in.
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                side: BorderSide(color: Theme.of(context).colorScheme.primary),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
-              ),
-              onPressed: onSave,
-              icon: const Icon(Icons.save),
-              label: const Text('Save Plan Parameters'),
-            ),
-          ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                side: BorderSide(color: Theme.of(context).colorScheme.primary),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+                  ),
+                  onPressed: onSave,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save'),
+                ),
               ),
-              onPressed: onLoad,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('Load Plan Parameters'),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+                  ),
+                  onPressed: onLoad,
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Load'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -519,7 +522,7 @@ class PlanSidebar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PaymentSourceOrderField(
-          label: 'Pay Expenses From',
+          label: 'After Retirement Pay Expenses From',
           sources: parametersMap.getPayExpensesFrom(),
           onChanged: (sources) {
             parametersMap.setPayExpensesFrom(sources);
@@ -530,7 +533,7 @@ class PlanSidebar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         PaymentSourceOrderField(
-          label: 'Pay Taxes From',
+          label: 'After Retirement Pay Taxes From',
           sources: parametersMap.getPayTaxesFrom(),
           onChanged: (sources) {
             parametersMap.setPayTaxesFrom(sources);

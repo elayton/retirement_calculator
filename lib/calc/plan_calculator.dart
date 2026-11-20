@@ -763,16 +763,16 @@ class PlanCalculator {
     _contributeToRothIra();
     _contributeToHsa();
 
+    _transferFourOhOneKToTraditionalIra();
+    _doRothConversion();
+    _takeRmds();
+
     parametersMap.getPayExpensesFrom()?.forEach((source) {
       if (source == PaymentSource.cash) { _payExpensesFromCash(); }
       if (source == PaymentSource.brokerage) { _payExpensesFromBrokerage(); }
       if (source == PaymentSource.traditionalIra) { _payExpensesFromTraditionalIra(); }
       if (source == PaymentSource.rothIra) { _payExpensesFromRothIra(); }
     });
-
-    _transferFourOhOneKToTraditionalIra();
-    _doRothConversion();
-    _takeRmds();
 
     _growCash();
     _growBrokerage();
